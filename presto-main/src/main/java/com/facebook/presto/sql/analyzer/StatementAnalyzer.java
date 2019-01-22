@@ -122,6 +122,7 @@ import com.facebook.presto.sql.tree.WindowFrame;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
 import com.facebook.presto.sql.util.AstUtils;
+import com.facebook.presto.util.OptimizePlanTreeUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -808,6 +809,12 @@ class StatementAnalyzer
                 ViewDefinition view = optionalView.get();
 
                 Query query = parseView(view.getOriginalSql(), name, table);
+
+                OptimizePlanTreeUtil.optimizeQueryPlanTree(
+                        session.getCatalog().isPresent() ? session.getCatalog().get() : null,
+                        session.getSchema().isPresent() ? session.getSchema().get() : null,
+                        query,
+                        session.getQueryId().getId());
 
                 analysis.registerNamedQuery(table, query);
 

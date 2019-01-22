@@ -130,6 +130,9 @@
         <module>presto-memory-context</module>
         <module>presto-proxy</module>
         <module>presto-kudu</module>
+        <module>presto-kylin</module>
+        <module>presto-druid</module>
+        <module>presto-hbase</module>
     </modules>
 
     <dependencyManagement>

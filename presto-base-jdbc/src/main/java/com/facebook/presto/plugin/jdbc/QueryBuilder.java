@@ -65,7 +65,7 @@ public class QueryBuilder
 
     private final String quote;
 
-    private static class TypeAndValue
+    public static class TypeAndValue
     {
         private final Type type;
         private final Object value;
@@ -195,7 +195,7 @@ public class QueryBuilder
                 validType instanceof VarcharType;
     }
 
-    private List<String> toConjuncts(List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<TypeAndValue> accumulator)
+    public List<String> toConjuncts(List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<TypeAndValue> accumulator)
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         for (JdbcColumnHandle column : columns) {
@@ -292,7 +292,7 @@ public class QueryBuilder
         return quote(columnName) + " " + operator + " ?";
     }
 
-    private String quote(String name)
+    public String quote(String name)
     {
         name = name.replace(quote, quote + quote);
         return quote + name + quote;

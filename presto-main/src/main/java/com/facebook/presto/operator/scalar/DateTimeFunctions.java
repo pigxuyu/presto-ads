@@ -637,6 +637,18 @@ public final class DateTimeFunctions
         return formatDatetime(unpackChronology(timestampWithTimeZone), session.getLocale(), unpackMillisUtc(timestampWithTimeZone), formatString);
     }
 
+    @ScalarFunction("time_format")
+    @LiteralParameters({"x", "y"})
+    @SqlType(StandardTypes.VARCHAR)
+    public static Slice timeFormatDatetimeWithTimeZone(
+            ConnectorSession session,
+            @SqlType(StandardTypes.TIMESTAMP) long timestamp,
+            @SqlType("varchar(x)") Slice formatString,
+            @SqlType("varchar(y)") Slice timeZone)
+    {
+        return formatDatetime(getChronology(TimeZoneKey.getTimeZoneKey(timeZone.toStringUtf8())), session.getLocale(), timestamp, formatString);
+    }
+
     private static Slice formatDatetime(ISOChronology chronology, Locale locale, long timestamp, Slice formatString)
     {
         try {

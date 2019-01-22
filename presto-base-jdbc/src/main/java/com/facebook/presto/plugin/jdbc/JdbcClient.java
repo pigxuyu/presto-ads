@@ -78,4 +78,7 @@ public interface JdbcClient
 
     PreparedStatement getPreparedStatement(Connection connection, String sql)
             throws SQLException;
+
+    PreparedStatement buildSql(Connection connection, JdbcSplit split, List<JdbcColumnHandle> columnHandles, String queryId)
+            throws SQLException;
 }

@@ -42,6 +42,7 @@ import com.facebook.presto.sql.planner.plan.ValuesNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.NodeRef;
 import com.facebook.presto.sql.tree.NullLiteral;
+import com.facebook.presto.util.OptimizePredicatePushdownUtil;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -259,6 +260,8 @@ public class PickTableLayout
                 session,
                 deterministicPredicate,
                 types);
+
+        OptimizePredicatePushdownUtil.optimizeDruidRemainingExpression(node.getTable().getConnectorHandle().toString(), decomposedPredicate.getRemainingExpression(), session.getQueryId().getId());
 
         TupleDomain<ColumnHandle> newDomain = decomposedPredicate.getTupleDomain()
                 .transform(node.getAssignments()::get)

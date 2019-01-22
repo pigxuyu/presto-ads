@@ -87,7 +87,12 @@ public class JdbcRecordCursor
 
         try {
             connection = jdbcClient.getConnection(split);
-            statement = jdbcClient.buildSql(connection, split, columnHandles);
+            if (com.google.common.collect.Lists.newArrayList("KylinClient", "DruidClient").contains(jdbcClient.getClass().getSimpleName())) {
+                statement = jdbcClient.buildSql(connection, split, columnHandles, session.getQueryId());
+            }
+            else {
+                statement = jdbcClient.buildSql(connection, split, columnHandles);
+            }
             log.debug("Executing: %s", statement.toString());
             resultSet = statement.executeQuery();
         }

@@ -39,6 +39,7 @@ import com.facebook.presto.sql.SqlPath;
 import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.transaction.TransactionManager;
+import com.facebook.presto.util.OptimizePlanTreeUtil;
 import com.facebook.presto.version.EmbedVersion;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.AbstractFuture;
@@ -358,6 +359,13 @@ public class SqlQueryManager
             if (queryExecutionFactory == null) {
                 throw new PrestoException(NOT_SUPPORTED, "Unsupported statement type: " + preparedQuery.getStatement().getClass().getSimpleName());
             }
+
+            OptimizePlanTreeUtil.optimizeQueryPlanTree(
+                    session.getCatalog().isPresent() ? session.getCatalog().get() : null,
+                    session.getSchema().isPresent() ? session.getSchema().get() : null,
+                    preparedQuery.getStatement(),
+                    queryId.getId());
+
             queryExecution = queryExecutionFactory.createQueryExecution(
                     query,
                     session,

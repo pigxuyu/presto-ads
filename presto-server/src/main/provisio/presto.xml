@@ -187,4 +187,22 @@
             <unpack />
         </artifact>
     </artifactSet>
+
+    <artifactSet to="plugin/kylin">
+        <artifact id="${project.groupId}:presto-kylin:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/druid">
+        <artifact id="${project.groupId}:presto-druid:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/hbase">
+        <artifact id="${project.groupId}:presto-hbase:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
 </runtime>
