@@ -18,24 +18,35 @@ import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class OptimizePlanTreeUtil {
 
+    @SuppressWarnings("Duplicates")
     public static void optimizeQueryPlanTree(String sessionCatalog, String sessionSchema, Statement statement, String queryId) {
         if(statement instanceof com.facebook.presto.sql.tree.Query) {
+            java.io.ObjectInputStream objinput = null;
             java.io.ObjectOutputStream objout = null;
             try {
+                Map<String, Pair<String, List<String>>> allSourceSqls = new java.util.HashMap<>();
+                java.util.Map<String, String> allWhereCondition = new java.util.HashMap<>();
                 java.io.File directory = new java.io.File(System.getProperty("java.io.tmpdir") + java.io.File.separatorChar + "prestoPlanTree");
                 if (!directory.exists()) {
                     directory.mkdir();
                 }
+                File objFile = new java.io.File(directory, queryId);
+                if (objFile.exists()) {
+                    objinput = new java.io.ObjectInputStream(new java.io.FileInputStream(objFile));
+                    allSourceSqls = (Map<String, Pair<String, List<String>>>) objinput.readObject();
+                    allWhereCondition = (Map<String, String>) objinput.readObject();
+                    objinput.close();
+                }
+
                 objout = new java.io.ObjectOutputStream(new java.io.FileOutputStream(new java.io.File(directory, queryId)));
                 com.facebook.presto.sql.tree.QuerySpecification planTree = (com.facebook.presto.sql.tree.QuerySpecification) ((com.facebook.presto.sql.tree.Query) statement).getQueryBody();
-                Map<String, Pair<String, List<String>>> allSourceSqls = new java.util.HashMap<>();
-                Map<String, String> allWhereCondition = new java.util.HashMap<>();
                 genPlanSourceSql(sessionCatalog, sessionSchema, allSourceSqls, planTree);
                 objout.writeObject(allSourceSqls);
                 objout.writeObject(allWhereCondition);
@@ -48,6 +59,9 @@ public class OptimizePlanTreeUtil {
                 throw new RuntimeException("save external planTree faile", e);
             } finally {
                 try {
+                    if (objinput != null) {
+                        objinput.close();
+                    }
                     if (objout != null) {
                         objout.close();
                     }

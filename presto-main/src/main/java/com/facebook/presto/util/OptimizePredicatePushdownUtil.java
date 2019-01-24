@@ -26,6 +26,7 @@ import java.util.Map;
  */
 public class OptimizePredicatePushdownUtil {
 
+    @SuppressWarnings("Duplicates")
     public static void optimizeDruidRemainingExpression(String tableInfo, Expression remainingExpression, String queryId) {
         String[] schemas = tableInfo.split(":");
         if (schemas[0].toLowerCase(java.util.Locale.getDefault()).contains("druid")) {
@@ -36,8 +37,8 @@ public class OptimizePredicatePushdownUtil {
                 try {
                     java.io.File directory = new java.io.File(System.getProperty("java.io.tmpdir") + java.io.File.separatorChar + "prestoPlanTree");
                     objinput = new java.io.ObjectInputStream(new java.io.FileInputStream(new java.io.File(directory, queryId)));
-                    Map<String, Pair<String, List<String>>> allSourceSqls = (Map<String, Pair<String, List<String>>>) objinput.readObject();
-                    Map<String, String> allWhereCondition = (Map<String, String>) objinput.readObject();
+                    java.util.Map<String, Pair<String, List<String>>> allSourceSqls = (Map<String, Pair<String, List<String>>>) objinput.readObject();
+                    java.util.Map<String, String> allWhereCondition = (Map<String, String>) objinput.readObject();
                     allWhereCondition.put(schemas[0] + "." + schemas[1], whereCondition);
                     objinput.close();
 
