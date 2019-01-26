@@ -16,10 +16,8 @@ package com.facebook.presto.util;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 /**
  * Created by Administrator on 2018/12/11.
@@ -29,22 +27,15 @@ public class OptimizePredicatePushdownUtil {
     @SuppressWarnings("Duplicates")
     public static void optimizeDruidRemainingExpression(String tableInfo, Expression remainingExpression, String queryId) {
         String[] schemas = tableInfo.split(":");
-        if (schemas[0].toLowerCase(java.util.Locale.getDefault()).contains("druid")) {
+        if (schemas[0].toLowerCase(Locale.getDefault()).contains("druid")) {
             String whereCondition = genWhereCondition(remainingExpression);
             if (!StringUtils.isEmpty(whereCondition)) {
-                java.io.ObjectInputStream objinput = null;
-                java.io.ObjectOutputStream objout = null;
+                ObjectMysqlUtil objectMysqlUtil = null;
                 try {
-                    java.io.File directory = new java.io.File(System.getProperty("java.io.tmpdir") + java.io.File.separatorChar + "prestoPlanTree");
-                    objinput = new java.io.ObjectInputStream(new java.io.FileInputStream(new java.io.File(directory, queryId)));
-                    java.util.Map<String, Pair<String, List<String>>> allSourceSqls = (Map<String, Pair<String, List<String>>>) objinput.readObject();
-                    java.util.Map<String, String> allWhereCondition = (Map<String, String>) objinput.readObject();
-                    allWhereCondition.put(schemas[0] + "." + schemas[1], whereCondition);
-                    objinput.close();
-
-                    objout = new java.io.ObjectOutputStream(new java.io.FileOutputStream(new java.io.File(directory, queryId)));
-                    objout.writeObject(allSourceSqls);
-                    objout.writeObject(allWhereCondition);
+                    objectMysqlUtil = ObjectMysqlUtil.open();
+                    OptimizeObj optimizeObj = objectMysqlUtil.readObject(queryId);
+                    optimizeObj.getAllWhereCondition().put(schemas[0] + "." + schemas[1], whereCondition);
+                    objectMysqlUtil.writeObj(queryId, optimizeObj);
                 }
                 catch (SemanticException e) {
                     throw e;
@@ -53,14 +44,8 @@ public class OptimizePredicatePushdownUtil {
                     e.printStackTrace();
                     throw new RuntimeException("save external predicate push down faile", e);
                 } finally {
-                    try {
-                        if (objinput != null) {
-                            objinput.close();
-                        }
-                        if (objout != null) {
-                            objout.close();
-                        }
-                    } catch (Exception ex) {}
+                    if (objectMysqlUtil != null)
+                        objectMysqlUtil.close();
                 }
             }
         }

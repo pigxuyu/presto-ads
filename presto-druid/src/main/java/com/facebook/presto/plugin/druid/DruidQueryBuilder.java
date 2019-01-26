@@ -24,14 +24,12 @@ import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.Float.intBitsToFloat;
@@ -49,6 +47,7 @@ public class DruidQueryBuilder extends QueryBuilder {
         super(quote);
     }
 
+    @SuppressWarnings("Duplicates")
     public PreparedStatement buildSql(JdbcClient client, Connection connection, String connectorId, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, String queryId)
             throws SQLException {
         StringBuilder sql = new StringBuilder();
@@ -73,7 +72,7 @@ public class DruidQueryBuilder extends QueryBuilder {
         }
         sql.append(quote(table));
 
-        List<TypeAndValue> accumulator = new ArrayList<>();
+        List<QueryBuilder.TypeAndValue> accumulator = new ArrayList<>();
 
         List<String> clauses = toConjuncts(columns, tupleDomain, accumulator);
         if (!clauses.isEmpty()) {
@@ -88,7 +87,7 @@ public class DruidQueryBuilder extends QueryBuilder {
             log.info("not found sql from file");
         }
         for (int i = 0; i < accumulator.size(); i++) {
-            TypeAndValue typeAndValue = accumulator.get(i);
+            QueryBuilder.TypeAndValue typeAndValue = accumulator.get(i);
             if (typeAndValue.getType().equals(BigintType.BIGINT)) {
                 needReplaceSql = needReplaceSql.replaceFirst("\\?", String.valueOf((long) typeAndValue.getValue()));
             } else if (typeAndValue.getType().equals(IntegerType.INTEGER)) {
@@ -127,14 +126,9 @@ public class DruidQueryBuilder extends QueryBuilder {
 
     @SuppressWarnings("Duplicates")
     private String getSourceSqlFromFile(String connectorId, String catalog, String schema, String table, String queryId, List<JdbcColumnHandle> jdbcColumnHandles, List<String> clauses) {
-
-        java.io.ObjectInputStream objinput = null;
+        ObjectMysqlUtil objectMysqlUtil = null;
         try {
-            java.io.File directory = new java.io.File(System.getProperty("java.io.tmpdir") + java.io.File.separatorChar + "prestoPlanTree");
-            if (!directory.exists()) {
-                return null;
-            }
-
+            objectMysqlUtil = ObjectMysqlUtil.open();
             StringBuilder tableInfo = new StringBuilder();
             if (!isNullOrEmpty(catalog)) {
                 tableInfo.append(quote(catalog)).append('.');
@@ -145,13 +139,13 @@ public class DruidQueryBuilder extends QueryBuilder {
             tableInfo.append(quote(table));
 
             String key = (connectorId + "." + schema + "." + table).toLowerCase(java.util.Locale.getDefault());
-            objinput = new java.io.ObjectInputStream(new java.io.FileInputStream(new java.io.File(directory, queryId)));
-            java.util.Map<String, Pair<String, List<String>>> allSourceSqls = (Map<String, Pair<String, List<String>>>) objinput.readObject();
-            java.util.Map<String, String> allWhereCondition = (Map<String, String>) objinput.readObject();
+            OptimizeObj optimizeObj = objectMysqlUtil.readObject(queryId);
+            java.util.Map<String, OptimizeTable> allSourceSqls = optimizeObj.getAllSourceSqls();
+            java.util.Map<String, String> allWhereCondition = optimizeObj.getAllWhereCondition();
             if (allSourceSqls.containsKey(key)) {
-                List<String> finalColumns = new java.util.ArrayList<>();
-                String baseSql = allSourceSqls.get(key).getKey();
-                List<String> analysisColumns = allSourceSqls.get(key).getValue();
+                List<String> finalColumns = new ArrayList<>();
+                String baseSql = allSourceSqls.get(key).getSql();
+                List<String> analysisColumns = allSourceSqls.get(key).getColumns();
                 for (JdbcColumnHandle jdbcColumnHandle : jdbcColumnHandles) {
                     boolean isMatch = false;
                     String jdbcColumnName = jdbcColumnHandle.getColumnName();
@@ -181,8 +175,8 @@ public class DruidQueryBuilder extends QueryBuilder {
             throw new RuntimeException("read external planTree fail", e);
         } finally {
             try {
-                if (objinput != null) {
-                    objinput.close();
+                if (objectMysqlUtil != null) {
+                    objectMysqlUtil.close();
                 }
             } catch (Exception ex) {}
         }
