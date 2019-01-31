@@ -13,7 +13,10 @@
  */
 package com.facebook.presto.util;
 
+import com.facebook.presto.optimize.ObjectMysqlUtil;
+import com.facebook.presto.optimize.OptimizeObj;
 import com.facebook.presto.optimize.OptimizeServerConfigUtil;
+import com.facebook.presto.optimize.OptimizeTable;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
