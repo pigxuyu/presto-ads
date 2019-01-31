@@ -13,10 +13,14 @@
  */
 package com.facebook.presto.util;
 
+import com.facebook.presto.optimize.ObjectMysqlUtil;
+import com.facebook.presto.optimize.OptimizeObj;
+import com.facebook.presto.optimize.OptimizeServerConfigUtil;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -24,7 +28,6 @@ import java.util.Locale;
  */
 public class OptimizePredicatePushdownUtil {
 
-    @SuppressWarnings("Duplicates")
     public static void optimizeDruidRemainingExpression(String tableInfo, Expression remainingExpression, String queryId) {
         String[] schemas = tableInfo.split(":");
         if (schemas[0].toLowerCase(Locale.getDefault()).contains("druid")) {
@@ -32,7 +35,8 @@ public class OptimizePredicatePushdownUtil {
             if (!StringUtils.isEmpty(whereCondition)) {
                 ObjectMysqlUtil objectMysqlUtil = null;
                 try {
-                    objectMysqlUtil = ObjectMysqlUtil.open();
+                    List<String> jdbcConfig = OptimizeServerConfigUtil.readConfig();
+                    objectMysqlUtil = ObjectMysqlUtil.open(jdbcConfig.get(0), jdbcConfig.get(1), jdbcConfig.get(2));
                     OptimizeObj optimizeObj = objectMysqlUtil.readObject(queryId);
                     optimizeObj.getAllWhereCondition().put(schemas[0] + "." + schemas[1], whereCondition);
                     objectMysqlUtil.writeObj(queryId, optimizeObj);
@@ -41,7 +45,6 @@ public class OptimizePredicatePushdownUtil {
                     throw e;
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
                     throw new RuntimeException("save external predicate push down faile", e);
                 } finally {
                     if (objectMysqlUtil != null)

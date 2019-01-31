@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.plugin.kylin;
 
+import com.facebook.presto.optimize.ObjectMysqlUtil;
+import com.facebook.presto.optimize.OptimizeObj;
+import com.facebook.presto.optimize.OptimizeTable;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.QueryBuilder;
@@ -71,7 +74,7 @@ public class KylinQueryBuilder extends QueryBuilder {
         }
         sql.append(quote(table));
 
-        List<QueryBuilder.TypeAndValue> accumulator = new ArrayList<>();
+        List<TypeAndValue> accumulator = new ArrayList<>();
 
         List<String> clauses = toConjuncts(columns, tupleDomain, accumulator);
         if (!clauses.isEmpty()) {
@@ -79,14 +82,14 @@ public class KylinQueryBuilder extends QueryBuilder {
         }
 
         String needReplaceSql = sql.toString();
-        String sqlFromFile = getSourceSqlFromFile(connectorId, catalog, schema, table, queryId, columns, clauses);
+        String sqlFromFile = getSourceSqlFromFile(client, connectorId, catalog, schema, table, queryId, columns, clauses);
         if (sqlFromFile != null) {
             needReplaceSql = sqlFromFile.toString();
         } else {
             log.info("not found sql from file");
         }
         for (int i = 0; i < accumulator.size(); i++) {
-            QueryBuilder.TypeAndValue typeAndValue = accumulator.get(i);
+            TypeAndValue typeAndValue = accumulator.get(i);
             if (typeAndValue.getType().equals(BigintType.BIGINT)) {
                 needReplaceSql = needReplaceSql.replaceFirst("\\?", String.valueOf((long) typeAndValue.getValue()));
             } else if (typeAndValue.getType().equals(IntegerType.INTEGER)) {
@@ -124,10 +127,11 @@ public class KylinQueryBuilder extends QueryBuilder {
     }
 
     @SuppressWarnings("Duplicates")
-    private String getSourceSqlFromFile(String connectorId, String catalog, String schema, String table, String queryId, List<JdbcColumnHandle> jdbcColumnHandles, List<String> clauses) {
+    private String getSourceSqlFromFile(JdbcClient client, String connectorId, String catalog, String schema, String table, String queryId, List<JdbcColumnHandle> jdbcColumnHandles, List<String> clauses) {
         ObjectMysqlUtil objectMysqlUtil = null;
         try {
-            objectMysqlUtil = ObjectMysqlUtil.open();
+            KylinClient kc = (KylinClient) client;
+            objectMysqlUtil = ObjectMysqlUtil.open(kc.jdbcUrl, kc.jdbcUser, kc.jdbcPassword);
             StringBuilder tableInfo = new StringBuilder();
             if (!isNullOrEmpty(catalog)) {
                 tableInfo.append(quote(catalog)).append('.');

@@ -130,6 +130,7 @@
         <module>presto-memory-context</module>
         <module>presto-proxy</module>
         <module>presto-kudu</module>
+        <module>presto-optimize</module>
         <module>presto-kylin</module>
         <module>presto-druid</module>
         <module>presto-hbase</module>
@@ -137,6 +138,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.facebook.presto</groupId>
+                <artifactId>presto-optimize</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.facebook.presto</groupId>
                 <artifactId>presto-spi</artifactId>

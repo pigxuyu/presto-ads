@@ -19,13 +19,49 @@ public class KylinConfig {
 
     private boolean metaNameUpperCase = true;
 
+    private String optimizeStorageConnectionUrl;
+
+    private String optimizeStorageConnectionUser;
+
+    private String optimizeStorageConnectionPassword;
+
     public boolean isMetaNameUpperCase() {
         return metaNameUpperCase;
+    }
+
+    public String getOptimizeStorageConnectionUrl() {
+        return optimizeStorageConnectionUrl;
+    }
+
+    public String getOptimizeStorageConnectionUser() {
+        return optimizeStorageConnectionUser;
+    }
+
+    public String getOptimizeStorageConnectionPassword() {
+        return optimizeStorageConnectionPassword;
     }
 
     @Config("kylin.metaname-uppercase")
     public KylinConfig setMetaNameUpperCase(boolean metaNameUpperCase) {
         this.metaNameUpperCase = metaNameUpperCase;
+        return this;
+    }
+
+    @Config("kylin.optimize.storage.connection-url")
+    public KylinConfig setOptimizeStorageConnectionUrl(String optimizeStorageConnectionUrl) {
+        this.optimizeStorageConnectionUrl = optimizeStorageConnectionUrl;
+        return this;
+    }
+
+    @Config("kylin.optimize.storage.connection-user")
+    public KylinConfig setOptimizeStorageConnectionUser(String optimizeStorageConnectionUser) {
+        this.optimizeStorageConnectionUser = optimizeStorageConnectionUser;
+        return this;
+    }
+
+    @Config("kylin.optimize.storage.connection-password")
+    public KylinConfig setOptimizeStorageConnectionPassword(String optimizeStorageConnectionPassword) {
+        this.optimizeStorageConnectionPassword = optimizeStorageConnectionPassword;
         return this;
     }
 }

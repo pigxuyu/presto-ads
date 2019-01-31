@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.util;
 
+import com.facebook.presto.optimize.OptimizeServerConfigUtil;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
@@ -22,12 +23,12 @@ import java.util.*;
 
 public class OptimizePlanTreeUtil {
 
-    @SuppressWarnings("Duplicates")
     public static void optimizeQueryPlanTree(String sessionCatalog, String sessionSchema, Statement statement, String queryId) {
         if(statement instanceof Query) {
             ObjectMysqlUtil objectMysqlUtil = null;
             try {
-                objectMysqlUtil = ObjectMysqlUtil.open();
+                List<String> jdbcConfig = OptimizeServerConfigUtil.readConfig();
+                objectMysqlUtil = ObjectMysqlUtil.open(jdbcConfig.get(0), jdbcConfig.get(1), jdbcConfig.get(2));
                 OptimizeObj optimizeObj = objectMysqlUtil.readObject(queryId);
                 QuerySpecification planTree = (QuerySpecification) ((Query) statement).getQueryBody();
                 genPlanSourceSql(sessionCatalog, sessionSchema, optimizeObj.getAllSourceSqls(), planTree);

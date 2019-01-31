@@ -29,20 +29,29 @@ import java.util.Properties;
 import java.util.Set;
 
 import static com.facebook.presto.plugin.jdbc.DriverConnectionFactory.basicConnectionProperties;
-import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
-import static java.util.Locale.ENGLISH;
 import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static java.util.Locale.ENGLISH;
 
 public class KylinClient extends BaseJdbcClient {
 
     private boolean metaNameUpperCase;
 
+    public String jdbcUrl;
+
+    public String jdbcUser;
+
+    public String jdbcPassword;
+
     @Inject
     public KylinClient(JdbcConnectorId connectorId, BaseJdbcConfig config, KylinConfig kylinConfig) throws Exception {
         super(connectorId, config, "", connectionFactory(config, kylinConfig));
         this.metaNameUpperCase = kylinConfig.isMetaNameUpperCase();
+        this.jdbcUrl = kylinConfig.getOptimizeStorageConnectionUrl();
+        this.jdbcUser = kylinConfig.getOptimizeStorageConnectionUser();
+        this.jdbcPassword = kylinConfig.getOptimizeStorageConnectionPassword();
     }
 
     @SuppressWarnings("Duplicates")

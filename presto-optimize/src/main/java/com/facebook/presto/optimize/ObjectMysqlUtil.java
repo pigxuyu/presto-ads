@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.util;
+package com.facebook.presto.optimize;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.commons.dbutils.QueryRunner;
@@ -28,10 +28,6 @@ import java.util.Map;
 public class ObjectMysqlUtil {
 
     private static String driver = "com.mysql.jdbc.Driver";
-    private static String url = "jdbc:mysql://172.21.122.44:3310/test";
-    private static String username = "ifly_ad_biz_d";
-    private static String password = "A3rLL1GI=H5!BGPftsiqojQx8CpsnR3u";
-
     private static String queryObjSql = "select objJson from presto_plan_tree where queryId = ?";
     private static String upsertObjSql = "insert into presto_plan_tree (queryId, objJson) values (?, ?) on duplicate key update objJson = ?";
 
@@ -39,7 +35,7 @@ public class ObjectMysqlUtil {
 
     private ObjectMysqlUtil() {}
 
-    public static ObjectMysqlUtil open() throws Exception {
+    public static ObjectMysqlUtil open(String url, String username, String password) throws Exception {
         ObjectMysqlUtil objectMysqlUtil = new ObjectMysqlUtil();
         try {
             Class.forName(driver);
@@ -50,7 +46,6 @@ public class ObjectMysqlUtil {
         return objectMysqlUtil;
     }
 
-    @SuppressWarnings("Duplicates")
     public OptimizeObj readObject(String queryId) throws SQLException {
         QueryRunner queryRunner = new QueryRunner();
         OptimizeObj obj = queryRunner.query(conn, queryObjSql, rs -> {

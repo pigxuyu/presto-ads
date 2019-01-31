@@ -48,10 +48,19 @@ public class DruidClient extends BaseJdbcClient {
 
     private boolean metaNameUpperCase;
 
+    public String jdbcUrl;
+
+    public String jdbcUser;
+
+    public String jdbcPassword;
+
     @Inject
     public DruidClient(JdbcConnectorId connectorId, BaseJdbcConfig config, DruidConfig druidConfig) throws Exception {
         super(connectorId, config, "\"", connectionFactory(config, druidConfig));
         this.metaNameUpperCase = druidConfig.isMetaNameUpperCase();
+        this.jdbcUrl = druidConfig.getOptimizeStorageConnectionUrl();
+        this.jdbcUser = druidConfig.getOptimizeStorageConnectionUser();
+        this.jdbcPassword = druidConfig.getOptimizeStorageConnectionPassword();
     }
 
     @SuppressWarnings("Duplicates")

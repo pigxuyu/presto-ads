@@ -183,6 +183,12 @@ public class SqlQueryManager
         queryManagementExecutorMBean = new ThreadPoolExecutorMBean((ThreadPoolExecutor) queryManagementExecutor);
 
         this.queryTracker = new QueryTracker<>(queryManagerConfig, queryManagementExecutor);
+
+        List<String> jdbcConfig = new java.util.ArrayList<>();
+        jdbcConfig.add(queryManagerConfig.getOptimizeStorageConnectionUrl());
+        jdbcConfig.add(queryManagerConfig.getOptimizeStorageConnectionUser());
+        jdbcConfig.add(queryManagerConfig.getOptimizeStorageConnectionPassword());
+        com.facebook.presto.optimize.OptimizeServerConfigUtil.writeConfig(jdbcConfig);
     }
 
     @PostConstruct

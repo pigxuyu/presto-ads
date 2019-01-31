@@ -63,6 +63,10 @@ public class QueryManagerConfig
     private int requiredWorkers = 1;
     private Duration requiredWorkersMaxWait = new Duration(5, TimeUnit.MINUTES);
 
+    private String optimizeStorageConnectionUrl;
+    private String optimizeStorageConnectionUser;
+    private String optimizeStorageConnectionPassword;
+
     @Min(1)
     public int getScheduleSplitBatchSize()
     {
@@ -359,6 +363,45 @@ public class QueryManagerConfig
     public QueryManagerConfig setRequiredWorkersMaxWait(Duration requiredWorkersMaxWait)
     {
         this.requiredWorkersMaxWait = requiredWorkersMaxWait;
+        return this;
+    }
+
+    @NotNull
+    public String getOptimizeStorageConnectionUrl()
+    {
+        return optimizeStorageConnectionUrl;
+    }
+
+    @Config("query.optimize.storage.connection-url")
+    public QueryManagerConfig setOptimizeStorageConnectionUrl(String optimizeStorageConnectionUrl)
+    {
+        this.optimizeStorageConnectionUrl = optimizeStorageConnectionUrl;
+        return this;
+    }
+
+    @NotNull
+    public String getOptimizeStorageConnectionUser()
+    {
+        return optimizeStorageConnectionUser;
+    }
+
+    @Config("query.optimize.storage.connection-user")
+    public QueryManagerConfig setOptimizeStorageConnectionUser(String optimizeStorageConnectionUser)
+    {
+        this.optimizeStorageConnectionUser = optimizeStorageConnectionUser;
+        return this;
+    }
+
+    @NotNull
+    public String getOptimizeStorageConnectionPassword()
+    {
+        return optimizeStorageConnectionPassword;
+    }
+
+    @Config("query.optimize.storage.connection-password")
+    public QueryManagerConfig setOptimizeStorageConnectionPassword(String optimizeStorageConnectionPassword)
+    {
+        this.optimizeStorageConnectionPassword = optimizeStorageConnectionPassword;
         return this;
     }
 }

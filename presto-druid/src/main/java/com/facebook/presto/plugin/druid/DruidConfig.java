@@ -19,13 +19,49 @@ public class DruidConfig {
 
     private boolean metaNameUpperCase = true;
 
+    private String optimizeStorageConnectionUrl;
+
+    private String optimizeStorageConnectionUser;
+
+    private String optimizeStorageConnectionPassword;
+
     public boolean isMetaNameUpperCase() {
         return metaNameUpperCase;
+    }
+
+    public String getOptimizeStorageConnectionUrl() {
+        return optimizeStorageConnectionUrl;
+    }
+
+    public String getOptimizeStorageConnectionUser() {
+        return optimizeStorageConnectionUser;
+    }
+
+    public String getOptimizeStorageConnectionPassword() {
+        return optimizeStorageConnectionPassword;
     }
 
     @Config("druid.metaname-uppercase")
     public DruidConfig setMetaNameUpperCase(boolean metaNameUpperCase) {
         this.metaNameUpperCase = metaNameUpperCase;
+        return this;
+    }
+
+    @Config("druid.optimize.storage.connection-url")
+    public DruidConfig setOptimizeStorageConnectionUrl(String optimizeStorageConnectionUrl) {
+        this.optimizeStorageConnectionUrl = optimizeStorageConnectionUrl;
+        return this;
+    }
+
+    @Config("druid.optimize.storage.connection-user")
+    public DruidConfig setOptimizeStorageConnectionUser(String optimizeStorageConnectionUser) {
+        this.optimizeStorageConnectionUser = optimizeStorageConnectionUser;
+        return this;
+    }
+
+    @Config("druid.optimize.storage.connection-password")
+    public DruidConfig setOptimizeStorageConnectionPassword(String optimizeStorageConnectionPassword) {
+        this.optimizeStorageConnectionPassword = optimizeStorageConnectionPassword;
         return this;
     }
 }
