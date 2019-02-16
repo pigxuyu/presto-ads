@@ -152,7 +152,7 @@ public class KylinQueryBuilder extends QueryBuilder {
                     boolean isMatch = false;
                     String jdbcColumnName = jdbcColumnHandle.getColumnName();
                     for (String col : analysisColumns) {
-                        if (ArrayUtils.contains(StringUtils.split(col.trim().toUpperCase(), "(), "), jdbcColumnName.toUpperCase())) {
+                        if (ArrayUtils.contains(StringUtils.split(col.trim().replaceAll("(?i)" + key + "(\\.)", "").toUpperCase(), "(), "), jdbcColumnName.toUpperCase())) {
                             finalColumns.add(col);
                             isMatch = true;
                         }
@@ -165,7 +165,8 @@ public class KylinQueryBuilder extends QueryBuilder {
                 String wherePushDown = !clauses.isEmpty() ? Joiner.on(" AND ").join(clauses) + (hasWhere ? " AND " : "") : "";
                 return baseSql.replace("{tableName}", tableInfo.toString() + (!hasWhere && !clauses.isEmpty() ? " where " : ""))
                         .replace("where", "where "+ wherePushDown)
-                        .replace("{columns}", StringUtils.join(finalColumns, ","));
+                        .replace("{columns}", StringUtils.join(finalColumns, ","))
+                        .replaceAll("(?i)" + key + "(\\.)", "");
             }
         }
         catch (Exception e) {

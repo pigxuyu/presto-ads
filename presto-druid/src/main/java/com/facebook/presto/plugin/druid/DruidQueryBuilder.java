@@ -154,7 +154,7 @@ public class DruidQueryBuilder extends QueryBuilder {
                     boolean isMatch = false;
                     String jdbcColumnName = jdbcColumnHandle.getColumnName();
                     for (String col : analysisColumns) {
-                        if (ArrayUtils.contains(StringUtils.split(col.trim().toUpperCase(), "(), "), jdbcColumnName.toUpperCase())) {
+                        if (ArrayUtils.contains(StringUtils.split(col.trim().replaceAll("(?i)" + key + "(\\.)", "").toUpperCase(), "(), "), jdbcColumnName.toUpperCase())) {
                             finalColumns.add(col);
                             isMatch = true;
                         }
@@ -172,7 +172,8 @@ public class DruidQueryBuilder extends QueryBuilder {
                 return baseSql.replace("{tableName}", tableInfo.toString() + (!hasWhere && !conditions.isEmpty() ? " where " : ""))
                         .replace("where", "where "+ wherePushDown)
                         .replace("{columns}", StringUtils.join(finalColumns, ","))
-                        .replace("format_datetime", "time_format");
+                        .replace("format_datetime", "time_format")
+                        .replaceAll("(?i)" + key + "(\\.)", "");
             }
         }
         catch (Exception e) {
