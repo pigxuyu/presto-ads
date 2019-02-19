@@ -646,7 +646,14 @@ public final class DateTimeFunctions
             @SqlType("varchar(x)") Slice formatString,
             @SqlType("varchar(y)") Slice timeZone)
     {
-        return formatDatetime(getChronology(TimeZoneKey.getTimeZoneKey(timeZone.toStringUtf8())), session.getLocale(), timestamp, formatString);
+        ISOChronology chronology = ISOChronology.getInstance();
+        Locale locale = session.getLocale();
+        long newZoneTimestamp = new org.joda.time.LocalDateTime(timestamp).toDateTime(DateTimeZone.UTC).withZone(DateTimeZone.forID(timeZone.toStringUtf8())).getMillis();
+        String rel = DateTimeFormat.forPattern(formatString.toStringUtf8())
+                .withChronology(chronology)
+                .withLocale(locale)
+                .print(newZoneTimestamp);
+        return utf8Slice(rel);
     }
 
     private static Slice formatDatetime(ISOChronology chronology, Locale locale, long timestamp, Slice formatString)
