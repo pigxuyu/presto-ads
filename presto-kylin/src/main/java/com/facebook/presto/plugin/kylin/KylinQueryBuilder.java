@@ -146,13 +146,16 @@ public class KylinQueryBuilder extends QueryBuilder {
             java.util.Map<String, OptimizeTable> allSourceSqls = optimizeObj.getAllSourceSqls();
             if (allSourceSqls.containsKey(key)) {
                 List<String> finalColumns = new ArrayList<>();
+                String tableAliasName = allSourceSqls.get(key).getTableAliasName();
+                tableInfo.append(" ").append(tableAliasName);
                 String baseSql = allSourceSqls.get(key).getSql();
                 List<String> analysisColumns = allSourceSqls.get(key).getColumns();
                 for (JdbcColumnHandle jdbcColumnHandle : jdbcColumnHandles) {
                     boolean isMatch = false;
                     String jdbcColumnName = jdbcColumnHandle.getColumnName();
                     for (String col : analysisColumns) {
-                        if (ArrayUtils.contains(StringUtils.split(col.trim().replaceAll("(?i)" + key + "(\\.)", "").toUpperCase(), "(), "), jdbcColumnName.toUpperCase())) {
+                        String columnExpress = col.trim().replaceAll("(?i)" + key + "(\\.)", "").replaceAll("(?i)" + tableAliasName + "(\\.)", "").toUpperCase();
+                        if (ArrayUtils.contains(StringUtils.split(columnExpress, "(), "), jdbcColumnName.toUpperCase())) {
                             finalColumns.add(col);
                             isMatch = true;
                         }

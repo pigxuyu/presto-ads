@@ -71,6 +71,7 @@ public class OptimizePlanTreeUtil {
     private static void optimizeTable(String sessionCatalog, String sessionSchema, Map<String, OptimizeTable> allSourceSqls, QuerySpecification planTree) {
         Select select = planTree.getSelect();
         Table table = planTree.getFrom().get() instanceof Table ? (Table) planTree.getFrom().get() : (Table) ((AliasedRelation) planTree.getFrom().get()).getRelation();
+        String tableAliasName = planTree.getFrom().get() instanceof AliasedRelation ? ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue() : "";
         String fullTableName = (table.getName().getParts().size() == 1 ? sessionCatalog + "." + sessionSchema + "." : "") + table.getName().toString();
         String catalog = table.getName().getParts().size() == 1 ? sessionCatalog : table.getName().getParts().get(0);
         if (select != null) {
@@ -95,15 +96,15 @@ public class OptimizePlanTreeUtil {
                             } else {
                                 throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "kylin or druid '%s' cannot be supported", "count(*)");
                             }
-                            reConstructSelect.add(new SingleColumn(column));
-                            fields.add(singleColumn.toString().replaceAll("\"", ""));
+                            reConstructSelect.add(new SingleColumn(column, singleColumn.getAlias()));
+                            fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
                         } else {
                             reConstructSelect.add(singleColumn);
-                            fields.add(singleColumn.toString().replaceAll("\"", ""));
+                            fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
                         }
                     } else {
                         reConstructSelect.add(singleColumn);
-                        fields.add(singleColumn.toString());
+                        fields.add(singleColumn.getExpression().toString());
                     }
                 } else if (field instanceof AllColumns) {
                     reConstructSelect.add(field);
@@ -156,7 +157,7 @@ public class OptimizePlanTreeUtil {
             if (limit.isPresent()) {
                 sql.append("limit").append(StringUtils.SPACE).append(limit.get());
             }
-            allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), fields));
+            allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, fields));
         }
     }
 

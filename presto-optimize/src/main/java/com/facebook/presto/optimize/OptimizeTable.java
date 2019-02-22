@@ -20,12 +20,15 @@ import java.util.List;
  */
 public class OptimizeTable {
 
-    public OptimizeTable(String sql, List<String> columns) {
+    public OptimizeTable(String sql, String tableAliasName, List<String> columns) {
         this.sql = sql;
+        this.tableAliasName = tableAliasName;
         this.columns = columns;
     }
 
     private String sql;
+
+    private String tableAliasName;
 
     private List<String> columns;
 
@@ -35,6 +38,14 @@ public class OptimizeTable {
 
     public void setSql(String sql) {
         this.sql = sql;
+    }
+
+    public String getTableAliasName() {
+        return tableAliasName;
+    }
+
+    public void setTableAliasName(String tableAliasName) {
+        this.tableAliasName = tableAliasName;
     }
 
     public List<String> getColumns() {
