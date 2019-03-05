@@ -146,17 +146,17 @@ public class OptimizePlanTreeUtil {
                     }
                 }
             }
-            if (orderBy.isPresent()) {
-                List<String> sorts = new ArrayList<>();
-                List<SortItem> sortItems = orderBy.get().getSortItems();
-                for (SortItem item : sortItems) {
-                    sorts.add(item.getSortKey().toString() + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
-                }
-                sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
-            }
-            if (limit.isPresent()) {
-                sql.append("limit").append(StringUtils.SPACE).append(limit.get());
-            }
+//            if (orderBy.isPresent()) {
+//                List<String> sorts = new ArrayList<>();
+//                List<SortItem> sortItems = orderBy.get().getSortItems();
+//                for (SortItem item : sortItems) {
+//                    sorts.add(item.getSortKey().toString() + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
+//                }
+//                sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
+//            }
+//            if (limit.isPresent()) {
+//                sql.append("limit").append(StringUtils.SPACE).append(limit.get());
+//            }
             allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, fields));
         }
     }
