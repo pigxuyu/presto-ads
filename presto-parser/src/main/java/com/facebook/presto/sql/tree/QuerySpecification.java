@@ -30,7 +30,7 @@ public class QuerySpecification
     private Optional<Expression> where;
     private Optional<GroupBy> groupBy;
     private Optional<Expression> having;
-    private final Optional<OrderBy> orderBy;
+    private Optional<OrderBy> orderBy;
     private final Optional<String> limit;
 
     public QuerySpecification(
@@ -86,26 +86,6 @@ public class QuerySpecification
         this.limit = limit;
     }
 
-    public void setSelect(Select select)
-    {
-        this.select = select;
-    }
-
-    public void setWhere(Optional<Expression> where)
-    {
-        this.where = where;
-    }
-
-    public void setHaving(Optional<Expression> having)
-    {
-        this.having = having;
-    }
-
-    public void setGroupBy(Optional<GroupBy> groupBy)
-    {
-        this.groupBy = groupBy;
-    }
-
     public Select getSelect()
     {
         return select;
@@ -139,6 +119,31 @@ public class QuerySpecification
     public Optional<String> getLimit()
     {
         return limit;
+    }
+
+    public void setSelect(Select select)
+    {
+        this.select = select;
+    }
+
+    public void setWhere(Optional<Expression> where)
+    {
+        this.where = where;
+    }
+
+    public void setHaving(Optional<Expression> having)
+    {
+        this.having = having;
+    }
+
+    public void setGroupBy(Optional<GroupBy> groupBy)
+    {
+        this.groupBy = groupBy;
+    }
+
+    public void setOrderBy(Optional<OrderBy> orderBy)
+    {
+        this.orderBy = orderBy;
     }
 
     @Override

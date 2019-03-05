@@ -116,9 +116,6 @@ public class OptimizePlanTreeUtil {
             if (select.isDistinct()) {
                 sql.append("distinct").append(StringUtils.SPACE);
             }
-            if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
-                planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
-            }
             sql.append("{columns}").append(StringUtils.SPACE);
             sql.append("from").append(StringUtils.SPACE).append("{tableName}").append(StringUtils.SPACE);
             if (where.isPresent()) {
@@ -146,17 +143,37 @@ public class OptimizePlanTreeUtil {
                     }
                 }
             }
-//            if (orderBy.isPresent()) {
-//                List<String> sorts = new ArrayList<>();
-//                List<SortItem> sortItems = orderBy.get().getSortItems();
-//                for (SortItem item : sortItems) {
-//                    sorts.add(item.getSortKey().toString() + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
-//                }
-//                sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
-//            }
-//            if (limit.isPresent()) {
-//                sql.append("limit").append(StringUtils.SPACE).append(limit.get());
-//            }
+            if (orderBy.isPresent()) {
+                List<String> sorts = new ArrayList<>();
+                List<SortItem> sortItems = orderBy.get().getSortItems();
+                for (SortItem item : sortItems) {
+                    if (item.getSortKey() instanceof Identifier) {
+                        String sortKey = item.getSortKey().toString();
+                        for (int index = 0;index < select.getSelectItems().size();index++) {
+                            SelectItem field = select.getSelectItems().get(index);
+                            if (field instanceof SingleColumn) {
+                                SingleColumn singleColumn = (SingleColumn) field;
+                                if (singleColumn.getAlias().isPresent() && sortKey.equalsIgnoreCase(singleColumn.getAlias().get().getValue())) {
+                                    sorts.add(singleColumn.getExpression().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        sorts.add(item.getSortKey().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
+                    }
+                }
+                sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
+                if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                    planTree.setOrderBy(Optional.empty());
+                }
+            }
+            if (limit.isPresent()) {
+                sql.append("limit").append(StringUtils.SPACE).append(limit.get());
+            }
+            if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
+            }
             allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, fields));
         }
     }
