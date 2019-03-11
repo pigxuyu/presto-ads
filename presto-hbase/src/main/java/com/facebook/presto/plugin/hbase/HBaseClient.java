@@ -28,12 +28,20 @@ public class HBaseClient {
 
     private static final Logger log = Logger.get(HBaseClient.class);
 
+    private String zkHosts = "";
+    private String zkPort = "";
     private Connection connection = null;
 
     private HBaseClient(String zkHosts, int zkPort) {
+        this.zkHosts = zkHosts;
+        this.zkPort = String.valueOf(zkPort);
+        createConnection();
+    }
+
+    private void createConnection() {
         Configuration conf = HBaseConfiguration.create();
         conf.set(HConstants.ZOOKEEPER_QUORUM, zkHosts);
-        conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(zkPort));
+        conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, zkPort);
         try {
             connection = ConnectionFactory.createConnection(conf);
         } catch (IOException e) {
@@ -82,13 +90,17 @@ public class HBaseClient {
         }
     }
 
+    public void reConnect() {
+        close();
+        createConnection();
+    }
+
     public void close() {
         try {
             if (connection != null) {
                 connection.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

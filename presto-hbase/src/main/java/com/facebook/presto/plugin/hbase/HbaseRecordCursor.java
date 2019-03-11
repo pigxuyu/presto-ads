@@ -64,10 +64,26 @@ public class HbaseRecordCursor
         this.columnHandles = columnHandles;
         this.hbaseClient = hbaseThriftManager.getHBaseClient();
         this.maxScanCountOnce = hbaseThriftManager.getHbaseConnectorConfig().getHbaseScanCount();
-        fetchData(split.getTupleDomain());
+        faultTolerantFetchData(split.getTupleDomain(), 2);
     }
 
-    private void fetchData(TupleDomain<ColumnHandle> tupleDomain) {
+    private void faultTolerantFetchData(TupleDomain<ColumnHandle> tupleDomain, int retryNum) {
+        int retryTimeNum = retryNum + 1;
+        while (retryTimeNum-- > 0) {
+            try {
+                fetchData(tupleDomain);
+                break;
+            } catch (IOException e) {
+                log.error(e, "fetch data throw exception, retry " + retryTimeNum);
+                hbaseClient.reConnect();
+            }
+        }
+        if (retryTimeNum == 0) {
+            log.error("fetch data failed after retry " + retryNum);
+        }
+    }
+
+    private void fetchData(TupleDomain<ColumnHandle> tupleDomain) throws IOException {
         List<ByteBuffer> columnFamilys = new ArrayList<>();
         Scan scan = new Scan();
         FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE);
@@ -125,16 +141,12 @@ public class HbaseRecordCursor
                 }
             }
         }
-        try {
-            scan.setFilter(filterList);
-            resultScanner = hbaseClient.getScanner(TableName.valueOf(split.getSchemaName(), split.getTableName()).getNameAsString(), scan);
-            nextRow();
-        } catch (IOException e) {
-            log.error(e, "fetch data throw exception");
-        }
+        scan.setFilter(filterList);
+        resultScanner = hbaseClient.getScanner(TableName.valueOf(split.getSchemaName(), split.getTableName()).getNameAsString(), scan);
+        nextRow();
     }
 
-    private boolean nextRow() {
+    private boolean nextRow() throws IOException {
         boolean hasMoreData = false;
         try {
             List<Result> currentRowValues = Lists.newArrayList(resultScanner.next(maxScanCountOnce));
@@ -144,6 +156,7 @@ public class HbaseRecordCursor
             }
         } catch (IOException e) {
             log.error(e, "fetch data for next row throw exception");
+            throw e;
         }
         return hasMoreData;
     }
@@ -170,13 +183,19 @@ public class HbaseRecordCursor
     @Override
     public boolean advanceNextPosition()
     {
-        boolean hasNext = rowIter.hasNext();
-        if (hasNext) {
-            currentRowResult = rowIter.next();
-            return hasNext;
-        }
-        if (nextRow()) {
-            return advanceNextPosition();
+        try {
+            if (rowIter != null) {
+                boolean hasNext = rowIter.hasNext();
+                if (hasNext) {
+                    currentRowResult = rowIter.next();
+                    return hasNext;
+                }
+                if (nextRow()) {
+                    return advanceNextPosition();
+                }
+            }
+        } catch (IOException e) {
+            log.error(e, "fetch data for next position throw exception");
         }
         return false;
     }
