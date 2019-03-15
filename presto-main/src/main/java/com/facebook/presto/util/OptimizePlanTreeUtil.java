@@ -33,8 +33,7 @@ public class OptimizePlanTreeUtil {
                 List<String> jdbcConfig = OptimizeServerConfigUtil.readConfig();
                 objectMysqlUtil = ObjectMysqlUtil.open(jdbcConfig.get(0), jdbcConfig.get(1), jdbcConfig.get(2));
                 OptimizeObj optimizeObj = objectMysqlUtil.readObject(queryId);
-                QuerySpecification planTree = (QuerySpecification) ((Query) statement).getQueryBody();
-                genPlanSourceSql(sessionCatalog, sessionSchema, optimizeObj.getAllSourceSqls(), planTree);
+                analyzeQueryBody(sessionCatalog, sessionSchema, optimizeObj.getAllSourceSqls(), ((Query) statement).getQueryBody());
                 objectMysqlUtil.writeObj(queryId, optimizeObj);
             }
             catch (SemanticException e) {
@@ -49,17 +48,35 @@ public class OptimizePlanTreeUtil {
         }
     }
 
+    private static void analyzeQueryBody(String sessionCatalog, String sessionSchema, Map<String, OptimizeTable> allSourceSqls, QueryBody queryBody) {
+        if (queryBody instanceof Union) {
+            Union union = (Union) queryBody;
+            List<Relation> relations = union.getRelations();
+            for (Relation relation : relations) {
+                if (relation instanceof QuerySpecification) {
+                    genPlanSourceSql(sessionCatalog, sessionSchema, allSourceSqls, (QuerySpecification) relation);
+                } else if (relation instanceof TableSubquery) {
+                    TableSubquery tableSubquery = (TableSubquery) relation;
+                    genPlanSourceSql(sessionCatalog, sessionSchema, allSourceSqls, (QuerySpecification) tableSubquery.getQuery().getQueryBody());
+                }
+            }
+        } else {
+            QuerySpecification planTree = (QuerySpecification) queryBody;
+            genPlanSourceSql(sessionCatalog, sessionSchema, allSourceSqls, planTree);
+        }
+    }
+
     private static void genPlanSourceSql(String sessionCatalog, String sessionSchema, Map<String, OptimizeTable> allSourceSqls, QuerySpecification planTree) {
         Relation from = planTree.getFrom().get();
         if (from instanceof Table) {
             optimizeTable(sessionCatalog, sessionSchema, allSourceSqls, planTree);
         } else if (from instanceof TableSubquery) {
             TableSubquery tableSubquery = (TableSubquery) from;
-            genPlanSourceSql(sessionCatalog, sessionSchema, allSourceSqls, (QuerySpecification) tableSubquery.getQuery().getQueryBody());
+            analyzeQueryBody(sessionCatalog, sessionSchema, allSourceSqls, tableSubquery.getQuery().getQueryBody());
         } else if (from instanceof AliasedRelation) {
             AliasedRelation aliasedRelation = (AliasedRelation) from;
             if (aliasedRelation.getRelation() instanceof TableSubquery) {
-                genPlanSourceSql(sessionCatalog, sessionSchema, allSourceSqls, (QuerySpecification) ((TableSubquery) aliasedRelation.getRelation()).getQuery().getQueryBody());
+                analyzeQueryBody(sessionCatalog, sessionSchema, allSourceSqls, ((TableSubquery) aliasedRelation.getRelation()).getQuery().getQueryBody());
             } else if (aliasedRelation.getRelation() instanceof Table) {
                 optimizeTable(sessionCatalog, sessionSchema, allSourceSqls, planTree);
             }
