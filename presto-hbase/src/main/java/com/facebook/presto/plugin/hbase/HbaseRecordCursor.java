@@ -75,6 +75,9 @@ public class HbaseRecordCursor
                 break;
             } catch (IOException e) {
                 log.error(e, "fetch data throw exception, retry " + retryTimeNum);
+                if (resultScanner != null) {
+                    resultScanner.close();
+                }
                 hbaseClient.reConnect();
             }
         }
@@ -141,6 +144,8 @@ public class HbaseRecordCursor
                 }
             }
         }
+        scan.setCaching(100);
+        scan.setBatch(maxScanCountOnce);
         scan.setFilter(filterList);
         resultScanner = hbaseClient.getScanner(TableName.valueOf(split.getSchemaName(), split.getTableName()).getNameAsString(), scan);
         nextRow();
