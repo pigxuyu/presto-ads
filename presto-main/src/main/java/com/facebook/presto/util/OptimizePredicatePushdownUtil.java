@@ -28,6 +28,55 @@ import java.util.Locale;
  */
 public class OptimizePredicatePushdownUtil {
 
+    public static void optimizeJoinPredicateExpression(Expression predicate) {
+        if (predicate instanceof ComparisonExpression) {
+            ComparisonExpression rootExpression = (ComparisonExpression) predicate;
+            ComparisonExpression.Operator rootOperator = rootExpression.getOperator();
+            Expression rootLeftExpression = rootExpression.getLeft();
+            Expression rootRightExpression = rootExpression.getRight();
+            if (!rootOperator.equals(ComparisonExpression.Operator.IS_DISTINCT_FROM) && rootLeftExpression instanceof ArithmeticBinaryExpression &&
+                    (rootRightExpression instanceof LongLiteral || rootRightExpression instanceof DoubleLiteral)) {
+                ArithmeticBinaryExpression childExpression = (ArithmeticBinaryExpression) rootLeftExpression;
+                Expression childLeftExpression = childExpression.getLeft();
+                Expression childRightExpression = childExpression.getRight();
+                ArithmeticBinaryExpression.Operator childOperator = childExpression.getOperator();
+
+                if (!childOperator.equals(ArithmeticBinaryExpression.Operator.MODULUS) && childLeftExpression instanceof SymbolReference &&
+                        (childRightExpression instanceof LongLiteral || childRightExpression instanceof DoubleLiteral)) {
+                    Double finalVaule;
+                    Double leftValue = rootRightExpression instanceof DoubleLiteral ? ((DoubleLiteral) rootRightExpression).getValue() : ((LongLiteral) rootRightExpression).getValue();
+                    Double rightValue = childRightExpression instanceof DoubleLiteral ? ((DoubleLiteral) childRightExpression).getValue() : ((LongLiteral) childRightExpression).getValue();
+                    switch (childOperator) {
+                        case ADD:
+                            finalVaule = leftValue - rightValue;
+                            break;
+                        case DIVIDE:
+                            finalVaule = leftValue * rightValue;
+                            break;
+                        case MULTIPLY:
+                            finalVaule = leftValue / rightValue;
+                            break;
+                        case SUBTRACT:
+                            finalVaule = leftValue + rightValue;
+                            break;
+                        default:
+                            return;
+                    }
+                    rootLeftExpression = childLeftExpression;
+                    rootRightExpression = (rootRightExpression instanceof DoubleLiteral || childRightExpression instanceof DoubleLiteral)
+                            ? new DoubleLiteral(String.valueOf(finalVaule))
+                            : new LongLiteral(String.valueOf(finalVaule.longValue()));
+                    rootExpression.left = rootLeftExpression;
+                    rootExpression.right = rootRightExpression;
+                }
+            }
+        } else if (predicate instanceof LogicalBinaryExpression) {
+            LogicalBinaryExpression logicalBinaryExpression = (LogicalBinaryExpression) predicate;
+            optimizeJoinPredicateExpression(logicalBinaryExpression.getLeft());
+            optimizeJoinPredicateExpression(logicalBinaryExpression.getRight());
+        }
+    }
+
     public static void optimizeDruidRemainingExpression(String tableInfo, Expression remainingExpression, String queryId) {
         String[] schemas = tableInfo.split(":");
         if (schemas[0].toLowerCase(Locale.getDefault()).contains("druid")) {

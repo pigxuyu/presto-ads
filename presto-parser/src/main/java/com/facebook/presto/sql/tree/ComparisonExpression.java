@@ -24,9 +24,9 @@ import static java.util.Objects.requireNonNull;
 public class ComparisonExpression
         extends Expression
 {
-    private final Operator operator;
-    private final Expression left;
-    private final Expression right;
+    public Operator operator;
+    public Expression left;
+    public Expression right;
 
     public ComparisonExpression(Operator operator, Expression left, Expression right)
     {

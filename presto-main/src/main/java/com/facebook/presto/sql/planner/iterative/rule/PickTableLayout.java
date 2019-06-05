@@ -254,6 +254,7 @@ public class PickTableLayout
     {
         // don't include non-deterministic predicates
         Expression deterministicPredicate = filterDeterministicConjuncts(predicate);
+        OptimizePredicatePushdownUtil.optimizeJoinPredicateExpression(deterministicPredicate);
 
         DomainTranslator.ExtractionResult decomposedPredicate = DomainTranslator.fromPredicate(
                 metadata,
