@@ -170,7 +170,7 @@ public class OptimizePlanTreeUtil {
                             SelectItem field = select.getSelectItems().get(index);
                             if (field instanceof SingleColumn) {
                                 SingleColumn singleColumn = (SingleColumn) field;
-                                if (singleColumn.getAlias().isPresent() && sortKey.equalsIgnoreCase(singleColumn.getAlias().get().getValue())) {
+                                if (sortKey.equalsIgnoreCase(((Identifier) singleColumn.getExpression()).getValue()) || (singleColumn.getAlias().isPresent() && sortKey.equalsIgnoreCase(singleColumn.getAlias().get().getValue()))) {
                                     sorts.add(singleColumn.getExpression().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
                                     break;
                                 }
