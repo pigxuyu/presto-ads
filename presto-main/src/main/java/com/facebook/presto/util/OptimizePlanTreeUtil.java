@@ -170,9 +170,16 @@ public class OptimizePlanTreeUtil {
                             SelectItem field = select.getSelectItems().get(index);
                             if (field instanceof SingleColumn) {
                                 SingleColumn singleColumn = (SingleColumn) field;
-                                if (sortKey.equalsIgnoreCase(((Identifier) singleColumn.getExpression()).getValue()) || (singleColumn.getAlias().isPresent() && sortKey.equalsIgnoreCase(singleColumn.getAlias().get().getValue()))) {
-                                    sorts.add(singleColumn.getExpression().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
-                                    break;
+                                if (singleColumn.getExpression() instanceof Identifier) {
+                                    if (sortKey.equalsIgnoreCase(((Identifier) singleColumn.getExpression()).getValue()) || (singleColumn.getAlias().isPresent() && sortKey.equalsIgnoreCase(singleColumn.getAlias().get().getValue()))) {
+                                        sorts.add(singleColumn.getExpression().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
+                                        break;
+                                    }
+                                } else if (singleColumn.getExpression() instanceof FunctionCall) {
+                                    if (singleColumn.getAlias().isPresent() && sortKey.equalsIgnoreCase(singleColumn.getAlias().get().getValue())) {
+                                        sorts.add(singleColumn.getExpression().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -180,7 +187,7 @@ public class OptimizePlanTreeUtil {
                         sorts.add(item.getSortKey().toString().replaceAll("\"", "") + StringUtils.SPACE + (item.getOrdering() == SortItem.Ordering.DESCENDING ? "desc" : ""));
                     }
                 }
-                sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
+                if (sorts.size() > 0) sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
                 if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
                     planTree.setOrderBy(Optional.empty());
                 }
