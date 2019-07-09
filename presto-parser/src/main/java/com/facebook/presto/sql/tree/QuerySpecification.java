@@ -31,7 +31,7 @@ public class QuerySpecification
     private Optional<GroupBy> groupBy;
     private Optional<Expression> having;
     private Optional<OrderBy> orderBy;
-    private final Optional<String> limit;
+    private Optional<String> limit;
 
     public QuerySpecification(
             Select select,
@@ -144,6 +144,11 @@ public class QuerySpecification
     public void setOrderBy(Optional<OrderBy> orderBy)
     {
         this.orderBy = orderBy;
+    }
+
+    public void setLimit(Optional<String> limit)
+    {
+        this.limit = limit;
     }
 
     @Override

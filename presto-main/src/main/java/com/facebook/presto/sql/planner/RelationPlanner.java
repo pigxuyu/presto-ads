@@ -78,13 +78,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.UnmodifiableIterator;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static com.facebook.presto.sql.analyzer.SemanticExceptions.notSupportedException;
 import static com.facebook.presto.sql.planner.plan.AggregationNode.singleGroupingSet;
@@ -173,7 +167,7 @@ class RelationPlanner
                 TableHandle th = ((TableScanNode) root).getTable();
                 String connector = th.getConnectorId().getCatalogName();
                 com.facebook.presto.spi.ConnectorTableHandle handle = th.getConnectorHandle();
-                if ("kylin".equalsIgnoreCase(connector) || "druid".equalsIgnoreCase(connector)) {
+                if (connector.toLowerCase(Locale.getDefault()).contains("kylin") || connector.toLowerCase(Locale.getDefault()).contains("druid")) {
                     java.lang.reflect.Field tableAliasName = handle.getClass().getDeclaredField("tableAliasName");
                     tableAliasName.setAccessible(true);
                     tableAliasName.set(handle, node.getAlias().getValue());

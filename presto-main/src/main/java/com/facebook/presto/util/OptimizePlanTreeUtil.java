@@ -45,6 +45,8 @@ public class OptimizePlanTreeUtil {
                 if (objectMysqlUtil != null)
                     objectMysqlUtil.close();
             }
+        } else if (statement instanceof Explain) {
+            optimizeQueryPlanTree(sessionCatalog, sessionSchema, ((Explain) statement).getStatement(), queryId);
         }
     }
 
@@ -195,6 +197,9 @@ public class OptimizePlanTreeUtil {
             }
             if (limit.isPresent()) {
                 sql.append("limit").append(StringUtils.SPACE).append(limit.get());
+                if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                    planTree.setLimit(Optional.empty());
+                }
             }
             if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
                 planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
