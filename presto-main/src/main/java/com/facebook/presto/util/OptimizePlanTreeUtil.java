@@ -89,7 +89,7 @@ public class OptimizePlanTreeUtil {
         Select select = planTree.getSelect();
         Table table = planTree.getFrom().get() instanceof Table ? (Table) planTree.getFrom().get() : (Table) ((AliasedRelation) planTree.getFrom().get()).getRelation();
         String tableAliasName = planTree.getFrom().get() instanceof AliasedRelation ? ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue() : "";
-        String fullTableName = (table.getName().getParts().size() == 1 ? sessionCatalog + "." + sessionSchema + "." : "") + table.getName().toString();
+        String fullTableName = (table.getName().getParts().size() == 1 ? sessionCatalog + "." + sessionSchema + "." : "") + table.getName().toString() + (StringUtils.isNotEmpty(tableAliasName) ? "." + tableAliasName : "");
         String catalog = table.getName().getParts().size() == 1 ? sessionCatalog : table.getName().getParts().get(0);
         if (select != null) {
             Optional<Expression> where = planTree.getWhere();
@@ -110,6 +110,7 @@ public class OptimizePlanTreeUtil {
                             Expression column;
                             if (functionCall.getArguments().size() > 0) {
                                 column = functionCall.getArguments().get(0);
+//                                column = new Identifier("aa");
                             } else {
                                 throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "kylin or druid '%s' cannot be supported", "count(*)");
                             }

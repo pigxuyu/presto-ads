@@ -14,10 +14,7 @@
 package com.facebook.presto.plugin.druid;
 
 import com.facebook.presto.plugin.jdbc.*;
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.PrestoException;
-import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.TableNotFoundException;
+import com.facebook.presto.spi.*;
 import com.facebook.presto.spi.type.CharType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.VarcharType;
@@ -133,12 +130,13 @@ public class DruidClient extends BaseJdbcClient {
             try (ResultSet resultSet = getTables(connection, jdbcSchemaName, jdbcTableName)) {
                 List<JdbcTableHandle> tableHandles = new ArrayList<>();
                 while (resultSet.next()) {
-                    tableHandles.add(new JdbcTableHandle(
+                    tableHandles.add(new DruidJdbcTableHandle(
                             connectorId,
                             schemaTableName,
                             resultSet.getString("TABLE_CAT"),
                             resultSet.getString("TABLE_SCHEM"),
-                            resultSet.getString("TABLE_NAME")));
+                            resultSet.getString("TABLE_NAME"),
+                            ""));
                 }
                 if (tableHandles.isEmpty()) {
                     return null;
@@ -207,8 +205,22 @@ public class DruidClient extends BaseJdbcClient {
                 split.getCatalogName(),
                 split.getSchemaName(),
                 split.getTableName(),
+                split.getTableAliasName(),
                 columnHandles,
                 split.getTupleDomain(),
                 queryId);
+    }
+
+    @Override
+    public ConnectorSplitSource getSplits(JdbcTableLayoutHandle layoutHandle) {
+        DruidJdbcTableHandle tableHandle = (DruidJdbcTableHandle) layoutHandle.getTable();
+        JdbcSplit jdbcSplit = new JdbcSplit(
+                connectorId,
+                tableHandle.getCatalogName(),
+                tableHandle.getSchemaName(),
+                tableHandle.getTableName(),
+                tableHandle.getAliasName(),
+                layoutHandle.getTupleDomain());
+        return new FixedSplitSource(ImmutableList.of(jdbcSplit));
     }
 }

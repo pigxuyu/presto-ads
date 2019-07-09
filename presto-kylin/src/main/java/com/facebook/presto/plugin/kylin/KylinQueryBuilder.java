@@ -51,7 +51,7 @@ public class KylinQueryBuilder extends QueryBuilder {
     }
 
     @SuppressWarnings("Duplicates")
-    public PreparedStatement buildSql(JdbcClient client, Connection connection, String connectorId, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, String queryId)
+    public PreparedStatement buildSql(JdbcClient client, Connection connection, String connectorId, String catalog, String schema, String table, String tableAliasName, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, String queryId)
             throws SQLException {
         StringBuilder sql = new StringBuilder();
 
@@ -82,7 +82,7 @@ public class KylinQueryBuilder extends QueryBuilder {
         }
 
         String needReplaceSql = sql.toString();
-        String sqlFromFile = getSourceSqlFromFile(client, connectorId, catalog, schema, table, queryId, columns, clauses);
+        String sqlFromFile = getSourceSqlFromFile(client, connectorId, catalog, schema, table, tableAliasName, queryId, columns, clauses);
         if (sqlFromFile != null) {
             needReplaceSql = sqlFromFile.toString();
         } else {
@@ -127,7 +127,7 @@ public class KylinQueryBuilder extends QueryBuilder {
     }
 
     @SuppressWarnings("Duplicates")
-    private String getSourceSqlFromFile(JdbcClient client, String connectorId, String catalog, String schema, String table, String queryId, List<JdbcColumnHandle> jdbcColumnHandles, List<String> clauses) {
+    private String getSourceSqlFromFile(JdbcClient client, String connectorId, String catalog, String schema, String table, String tableAliasName, String queryId, List<JdbcColumnHandle> jdbcColumnHandles, List<String> clauses) {
         ObjectMysqlUtil objectMysqlUtil = null;
         try {
             KylinClient kc = (KylinClient) client;
@@ -141,12 +141,11 @@ public class KylinQueryBuilder extends QueryBuilder {
             }
             tableInfo.append(quote(table));
 
-            String key = (connectorId + "." + schema + "." + table).toLowerCase(java.util.Locale.getDefault());
+            String key = (connectorId + "." + schema + "." + table + (StringUtils.isNotEmpty(tableAliasName) ? "." + tableAliasName : "")).toLowerCase(java.util.Locale.getDefault());
             OptimizeObj optimizeObj = objectMysqlUtil.readObject(queryId);
             java.util.Map<String, OptimizeTable> allSourceSqls = optimizeObj.getAllSourceSqls();
             if (allSourceSqls.containsKey(key)) {
                 List<String> finalColumns = new ArrayList<>();
-                String tableAliasName = allSourceSqls.get(key).getTableAliasName();
                 tableInfo.append(" ").append(tableAliasName);
                 String baseSql = allSourceSqls.get(key).getSql();
                 List<String> analysisColumns = allSourceSqls.get(key).getColumns();

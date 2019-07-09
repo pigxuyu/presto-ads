@@ -25,14 +25,14 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
-public final class JdbcTableHandle
+public class JdbcTableHandle
         implements ConnectorTableHandle
 {
-    private final String connectorId;
-    private final SchemaTableName schemaTableName;
-    private final String catalogName;
-    private final String schemaName;
-    private final String tableName;
+    protected final String connectorId;
+    protected final SchemaTableName schemaTableName;
+    protected final String catalogName;
+    protected final String schemaName;
+    protected final String tableName;
 
     @JsonCreator
     public JdbcTableHandle(

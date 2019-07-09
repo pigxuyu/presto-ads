@@ -168,6 +168,21 @@ class RelationPlanner
         RelationPlan subPlan = process(node.getRelation(), context);
 
         PlanNode root = subPlan.getRoot();
+        try {
+            if (root instanceof TableScanNode) {
+                TableHandle th = ((TableScanNode) root).getTable();
+                String connector = th.getConnectorId().getCatalogName();
+                com.facebook.presto.spi.ConnectorTableHandle handle = th.getConnectorHandle();
+                if ("kylin".equalsIgnoreCase(connector) || "druid".equalsIgnoreCase(connector)) {
+                    java.lang.reflect.Field tableAliasName = handle.getClass().getDeclaredField("tableAliasName");
+                    tableAliasName.setAccessible(true);
+                    tableAliasName.set(handle, node.getAlias().getValue());
+                    tableAliasName.setAccessible(false);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         List<Symbol> mappings = subPlan.getFieldMappings();
 
         if (node.getColumnNames() != null) {
