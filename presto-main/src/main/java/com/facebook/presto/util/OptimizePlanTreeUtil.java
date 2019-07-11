@@ -111,8 +111,7 @@ public class OptimizePlanTreeUtil {
                         if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
                             Expression column;
                             if (functionCall.getArguments().size() > 0) {
-                                column = functionCall.getArguments().get(0);
-//                                column = new Identifier("aa");
+                                column = deepTraversalFunctionCall(functionCall);
                             } else {
                                 throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "kylin or druid '%s' cannot be supported", "count(*)");
                             }
@@ -226,5 +225,17 @@ public class OptimizePlanTreeUtil {
         } else if (join.getRight() instanceof Join) {
             deepTraversalJoin(sessionCatalog, sessionSchema, allSourceSqls, (Join) join.getRight());
         }
+    }
+
+    private static Expression deepTraversalFunctionCall(FunctionCall functionCall) {
+        List<Expression> args = functionCall.getArguments();
+        for (Expression arg : args) {
+            if (arg instanceof Identifier) {
+                return arg;
+            } else if (arg instanceof FunctionCall) {
+                return deepTraversalFunctionCall((FunctionCall) arg);
+            }
+        }
+        return args.get(0);
     }
 }
