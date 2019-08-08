@@ -69,21 +69,23 @@ public class OptimizePlanTreeUtil {
     }
 
     private static void genPlanSourceSql(String sessionCatalog, String sessionSchema, Map<String, OptimizeTable> allSourceSqls, QuerySpecification planTree) {
-        Relation from = planTree.getFrom().get();
-        if (from instanceof Table) {
-            optimizeTable(sessionCatalog, sessionSchema, allSourceSqls, planTree);
-        } else if (from instanceof TableSubquery) {
-            TableSubquery tableSubquery = (TableSubquery) from;
-            analyzeQueryBody(sessionCatalog, sessionSchema, allSourceSqls, tableSubquery.getQuery().getQueryBody());
-        } else if (from instanceof AliasedRelation) {
-            AliasedRelation aliasedRelation = (AliasedRelation) from;
-            if (aliasedRelation.getRelation() instanceof TableSubquery) {
-                analyzeQueryBody(sessionCatalog, sessionSchema, allSourceSqls, ((TableSubquery) aliasedRelation.getRelation()).getQuery().getQueryBody());
-            } else if (aliasedRelation.getRelation() instanceof Table) {
+        if (planTree.getFrom().isPresent()) {
+            Relation from = planTree.getFrom().get();
+            if (from instanceof Table) {
                 optimizeTable(sessionCatalog, sessionSchema, allSourceSqls, planTree);
+            } else if (from instanceof TableSubquery) {
+                TableSubquery tableSubquery = (TableSubquery) from;
+                analyzeQueryBody(sessionCatalog, sessionSchema, allSourceSqls, tableSubquery.getQuery().getQueryBody());
+            } else if (from instanceof AliasedRelation) {
+                AliasedRelation aliasedRelation = (AliasedRelation) from;
+                if (aliasedRelation.getRelation() instanceof TableSubquery) {
+                    analyzeQueryBody(sessionCatalog, sessionSchema, allSourceSqls, ((TableSubquery) aliasedRelation.getRelation()).getQuery().getQueryBody());
+                } else if (aliasedRelation.getRelation() instanceof Table) {
+                    optimizeTable(sessionCatalog, sessionSchema, allSourceSqls, planTree);
+                }
+            } else if (from instanceof Join) {
+                deepTraversalJoin(sessionCatalog, sessionSchema, allSourceSqls, (Join) from);
             }
-        } else if (from instanceof Join) {
-            deepTraversalJoin(sessionCatalog, sessionSchema, allSourceSqls, (Join) from);
         }
     }
 
@@ -109,14 +111,24 @@ public class OptimizePlanTreeUtil {
                     if (singleColumn.getExpression() instanceof FunctionCall) {
                         FunctionCall functionCall = (FunctionCall) singleColumn.getExpression();
                         if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
-                            Expression column;
-                            if (functionCall.getArguments().size() > 0) {
-                                column = deepTraversalFunctionCall(functionCall);
-                            } else {
+                            if (functionCall.getArguments().size() == 0) {
                                 throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "kylin or druid '%s' cannot be supported", "count(*)");
                             }
-                            reConstructSelect.add(new SingleColumn(column, singleColumn.getAlias()));
-                            fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
+                            if (catalog.toLowerCase(Locale.getDefault()).contains("druid") &&
+                                    functionCall.getName().toString().equalsIgnoreCase("format_datetime") &&
+                                    ((functionCall.getArguments().get(0) instanceof Identifier && ((Identifier) functionCall.getArguments().get(0)).getValue().equalsIgnoreCase("__time")) ||
+                                    (functionCall.getArguments().get(0) instanceof DereferenceExpression && ((DereferenceExpression) functionCall.getArguments().get(0)).getField().getValue().equalsIgnoreCase("__time")))) {
+                                reConstructSelect.add(singleColumn);
+                                List<Expression> arguments = new ArrayList<>();
+                                arguments.add(singleColumn.getExpression());
+                                arguments.add(functionCall.getArguments().get(1));
+                                arguments.add(new StringLiteral("+08:00"));
+                                fields.add(new FunctionCall(QualifiedName.of("TIME_PARSE"), arguments).toString().replaceAll("\"", ""));
+                            } else {
+                                Expression column = deepTraversalFunctionCall(functionCall);
+                                reConstructSelect.add(new SingleColumn(column, singleColumn.getAlias()));
+                                fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
+                            }
                         } else {
                             reConstructSelect.add(singleColumn);
                             fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
@@ -234,6 +246,8 @@ public class OptimizePlanTreeUtil {
                 return arg;
             } else if (arg instanceof FunctionCall) {
                 return deepTraversalFunctionCall((FunctionCall) arg);
+            } else if (arg instanceof DereferenceExpression) {
+                return ((DereferenceExpression) arg).getField();
             }
         }
         return args.get(0);
