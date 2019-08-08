@@ -67,9 +67,6 @@ public class DruidQueryBuilder extends QueryBuilder {
         }
 
         sql.append(" FROM ");
-        if (!isNullOrEmpty(catalog)) {
-            sql.append(quote(catalog)).append('.');
-        }
         if (!isNullOrEmpty(schema)) {
             sql.append(quote(schema)).append('.');
         }
@@ -134,9 +131,6 @@ public class DruidQueryBuilder extends QueryBuilder {
             DruidClient dc = (DruidClient) client;
             objectMysqlUtil = ObjectMysqlUtil.open(dc.jdbcUrl, dc.jdbcUser, dc.jdbcPassword);
             StringBuilder tableInfo = new StringBuilder();
-            if (!isNullOrEmpty(catalog)) {
-                tableInfo.append(quote(catalog)).append('.');
-            }
             if (!isNullOrEmpty(schema)) {
                 tableInfo.append(quote(schema)).append('.');
             }
