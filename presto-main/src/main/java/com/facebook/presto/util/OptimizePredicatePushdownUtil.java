@@ -16,12 +16,12 @@ package com.facebook.presto.util;
 import com.facebook.presto.optimize.ObjectMysqlUtil;
 import com.facebook.presto.optimize.OptimizeObj;
 import com.facebook.presto.optimize.OptimizeServerConfigUtil;
+import com.facebook.presto.optimize.OptimizeSettingUtil;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Created by Administrator on 2018/12/11.
@@ -79,7 +79,7 @@ public class OptimizePredicatePushdownUtil {
 
     public static void optimizeDruidRemainingExpression(String tableInfo, Expression remainingExpression, String queryId) {
         String[] schemas = tableInfo.split(":");
-        if (schemas[0].toLowerCase(Locale.getDefault()).contains("druid")) {
+        if (OptimizeSettingUtil.isDruidCatalog(schemas[0])) {
             String whereCondition = genWhereCondition(remainingExpression);
             if (!StringUtils.isEmpty(whereCondition)) {
                 ObjectMysqlUtil objectMysqlUtil = null;

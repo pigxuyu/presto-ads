@@ -71,6 +71,7 @@ import com.facebook.presto.sql.tree.TableSubquery;
 import com.facebook.presto.sql.tree.Union;
 import com.facebook.presto.sql.tree.Unnest;
 import com.facebook.presto.sql.tree.Values;
+import com.facebook.presto.util.OptimizePlanTreeUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -78,7 +79,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.UnmodifiableIterator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static com.facebook.presto.sql.analyzer.SemanticExceptions.notSupportedException;
 import static com.facebook.presto.sql.planner.plan.AggregationNode.singleGroupingSet;
@@ -162,21 +169,7 @@ class RelationPlanner
         RelationPlan subPlan = process(node.getRelation(), context);
 
         PlanNode root = subPlan.getRoot();
-        try {
-            if (root instanceof TableScanNode) {
-                TableHandle th = ((TableScanNode) root).getTable();
-                String connector = th.getConnectorId().getCatalogName();
-                com.facebook.presto.spi.ConnectorTableHandle handle = th.getConnectorHandle();
-                if (connector.toLowerCase(Locale.getDefault()).contains("kylin") || connector.toLowerCase(Locale.getDefault()).contains("druid")) {
-                    java.lang.reflect.Field tableAliasName = handle.getClass().getDeclaredField("tableAliasName");
-                    tableAliasName.setAccessible(true);
-                    tableAliasName.set(handle, node.getAlias().getValue());
-                    tableAliasName.setAccessible(false);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        OptimizePlanTreeUtil.optimizeAliasePushDown(root, node);
         List<Symbol> mappings = subPlan.getFieldMappings();
 
         if (node.getColumnNames() != null) {

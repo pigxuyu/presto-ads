@@ -13,12 +13,12 @@
  */
 package com.facebook.presto.util;
 
-import com.facebook.presto.optimize.ObjectMysqlUtil;
-import com.facebook.presto.optimize.OptimizeObj;
-import com.facebook.presto.optimize.OptimizeServerConfigUtil;
-import com.facebook.presto.optimize.OptimizeTable;
+import com.facebook.presto.metadata.TableHandle;
+import com.facebook.presto.optimize.*;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
+import com.facebook.presto.sql.planner.plan.PlanNode;
+import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.*;
 import org.apache.commons.lang3.StringUtils;
 
@@ -110,11 +110,11 @@ public class OptimizePlanTreeUtil {
                     SingleColumn singleColumn = (SingleColumn) field;
                     if (singleColumn.getExpression() instanceof FunctionCall) {
                         FunctionCall functionCall = (FunctionCall) singleColumn.getExpression();
-                        if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                        if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                             if (functionCall.getArguments().size() == 0) {
                                 throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "kylin or druid '%s' cannot be supported", "count(*)");
                             }
-                            if (catalog.toLowerCase(Locale.getDefault()).contains("druid") &&
+                            if (OptimizeSettingUtil.isDruidCatalog(catalog) &&
                                     functionCall.getName().toString().equalsIgnoreCase("format_datetime") &&
                                     ((functionCall.getArguments().get(0) instanceof Identifier && ((Identifier) functionCall.getArguments().get(0)).getValue().equalsIgnoreCase("__time")) ||
                                     (functionCall.getArguments().get(0) instanceof DereferenceExpression && ((DereferenceExpression) functionCall.getArguments().get(0)).getField().getValue().equalsIgnoreCase("__time")))) {
@@ -151,7 +151,7 @@ public class OptimizePlanTreeUtil {
             sql.append("from").append(StringUtils.SPACE).append("{tableName}").append(StringUtils.SPACE);
             if (where.isPresent()) {
                 sql.append("where").append(StringUtils.SPACE).append(where.get().toString().replaceAll("\"", "")).append(StringUtils.SPACE);
-                if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                     planTree.setWhere(Optional.empty());
                 }
             }
@@ -164,12 +164,12 @@ public class OptimizePlanTreeUtil {
                     }
                 }
                 sql.append("group by").append(StringUtils.SPACE).append(StringUtils.join(groups, ",")).append(StringUtils.SPACE);
-                if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                     planTree.setGroupBy(Optional.empty());
                 }
                 if (having.isPresent()) {
                     sql.append("having").append(StringUtils.SPACE).append(having.get().toString().replaceAll("\"", "")).append(StringUtils.SPACE);
-                    if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                    if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                         planTree.setHaving(Optional.empty());
                     }
                 }
@@ -202,17 +202,17 @@ public class OptimizePlanTreeUtil {
                     }
                 }
                 if (sorts.size() > 0) sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
-                if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                     planTree.setOrderBy(Optional.empty());
                 }
             }
             if (limit.isPresent()) {
                 sql.append("limit").append(StringUtils.SPACE).append(limit.get());
-                if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                     planTree.setLimit(Optional.empty());
                 }
             }
-            if (catalog.toLowerCase(Locale.getDefault()).contains("kylin") || catalog.toLowerCase(Locale.getDefault()).contains("druid")) {
+            if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                 planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
             }
             allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, fields));
@@ -251,5 +251,23 @@ public class OptimizePlanTreeUtil {
             }
         }
         return args.get(0);
+    }
+
+    public static void optimizeAliasePushDown(PlanNode root, AliasedRelation node) {
+        try {
+            if (root instanceof TableScanNode) {
+                TableHandle th = ((TableScanNode) root).getTable();
+                String connector = th.getConnectorId().getCatalogName();
+                com.facebook.presto.spi.ConnectorTableHandle handle = th.getConnectorHandle();
+                if (OptimizeSettingUtil.isNeedOptimizeCatalog(connector)) {
+                    java.lang.reflect.Field tableAliasName = handle.getClass().getDeclaredField("tableAliasName");
+                    tableAliasName.setAccessible(true);
+                    tableAliasName.set(handle, node.getAlias().getValue());
+                    tableAliasName.setAccessible(false);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
