@@ -105,6 +105,7 @@ public class HbaseRecordCursor
                         else {
                             FilterList rangeFilterList = new FilterList(FilterList.Operator.MUST_PASS_ALL);
                             if (!range.getLow().isLowerUnbounded()) {
+                                scan.setStartRow(Bytes.toBytes(((Slice) range.getLow().getValue()).toStringUtf8()));
                                 switch (range.getLow().getBound()) {
                                     case ABOVE:
                                         Filter greaterFilter = new RowFilter(CompareFilter.CompareOp.GREATER, new BinaryComparator(((Slice) range.getLow().getValue()).toStringUtf8().getBytes()));

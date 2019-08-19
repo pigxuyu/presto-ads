@@ -42,6 +42,7 @@ public class HBaseClient {
         Configuration conf = HBaseConfiguration.create();
         conf.set(HConstants.ZOOKEEPER_QUORUM, zkHosts);
         conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, zkPort);
+        conf.setInt("hbase.client.scanner.timeout.period", 180000);
         try {
             connection = ConnectionFactory.createConnection(conf);
         } catch (IOException e) {
