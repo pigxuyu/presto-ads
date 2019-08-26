@@ -99,6 +99,7 @@ public class HbaseRecordCursor
                     for (Range range : domain.getValues().getRanges().getOrderedRanges()) {
                         checkState(!range.isAll()); // Already checked
                         if (range.isSingleValue()) {
+                            scan.setStartRow(Bytes.toBytes(((Slice) range.getLow().getValue()).toStringUtf8()));
                             Filter eqFilter = new RowFilter(CompareFilter.CompareOp.EQUAL, new BinaryComparator(((Slice) range.getLow().getValue()).toStringUtf8().getBytes()));
                             filterList.addFilter(eqFilter);
                         }

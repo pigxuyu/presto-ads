@@ -95,7 +95,7 @@ public class OptimizePlanTreeUtil {
         String tableAliasName = planTree.getFrom().get() instanceof AliasedRelation ? ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue() : "";
         String fullTableName = (table.getName().getParts().size() == 1 ? sessionCatalog + "." + sessionSchema + "." : "") + table.getName().toString() + (StringUtils.isNotEmpty(tableAliasName) ? "." + tableAliasName : "");
         String catalog = table.getName().getParts().size() == 1 ? sessionCatalog : table.getName().getParts().get(0);
-        if (select != null) {
+        if (StringUtils.isNotEmpty(catalog) && select != null) {
             Optional<Expression> where = planTree.getWhere();
             Optional<GroupBy> groupBy = planTree.getGroupBy();
             Optional<Expression> having = planTree.getHaving();
@@ -112,7 +112,7 @@ public class OptimizePlanTreeUtil {
                         FunctionCall functionCall = (FunctionCall) singleColumn.getExpression();
                         if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
                             if (functionCall.getArguments().size() == 0) {
-                                throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "kylin or druid '%s' cannot be supported", "count(*)");
+                                throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog kylin or druid '%s' cannot be supported in group by", "count(*)");
                             }
                             if (OptimizeSettingUtil.isDruidCatalog(catalog) &&
                                     functionCall.getName().toString().equalsIgnoreCase("format_datetime") &&
