@@ -26,7 +26,7 @@ public class QuerySpecification
         extends QueryBody
 {
     private Select select;
-    private final Optional<Relation> from;
+    private Optional<Relation> from;
     private Optional<Expression> where;
     private Optional<GroupBy> groupBy;
     private Optional<Expression> having;

@@ -14,7 +14,10 @@
 package com.facebook.presto.util;
 
 import com.facebook.presto.metadata.TableHandle;
-import com.facebook.presto.optimize.*;
+import com.facebook.presto.optimize.ObjectMysqlUtil;
+import com.facebook.presto.optimize.OptimizeObj;
+import com.facebook.presto.optimize.OptimizeServerConfigUtil;
+import com.facebook.presto.optimize.OptimizeTable;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.planner.plan.PlanNode;
@@ -95,48 +98,22 @@ public class OptimizePlanTreeUtil {
         String tableAliasName = planTree.getFrom().get() instanceof AliasedRelation ? ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue() : "";
         String fullTableName = (table.getName().getParts().size() == 1 ? sessionCatalog + "." + sessionSchema + "." : "") + table.getName().toString() + (StringUtils.isNotEmpty(tableAliasName) ? "." + tableAliasName : "");
         String catalog = table.getName().getParts().size() == 1 ? sessionCatalog : table.getName().getParts().get(0);
-        if (StringUtils.isNotEmpty(catalog) && select != null) {
+        if (StringUtils.isNotEmpty(catalog) && select != null && OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
             Optional<Expression> where = planTree.getWhere();
             Optional<GroupBy> groupBy = planTree.getGroupBy();
             Optional<Expression> having = planTree.getHaving();
             Optional<OrderBy> orderBy = planTree.getOrderBy();
             Optional<String> limit = planTree.getLimit();
 
+            if (!countCheckPushDown(select.getSelectItems(), groupBy.isPresent(), catalog)) return;
             List<SelectItem> reConstructSelect = new ArrayList<>();
-            List<String> fields = new ArrayList<>();
+            Set<String> fields = new HashSet<>();
             for (int index = 0;index < select.getSelectItems().size();index++) {
                 SelectItem field = select.getSelectItems().get(index);
                 if (field instanceof SingleColumn) {
                     SingleColumn singleColumn = (SingleColumn) field;
-                    if (singleColumn.getExpression() instanceof FunctionCall) {
-                        FunctionCall functionCall = (FunctionCall) singleColumn.getExpression();
-                        if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                            if (functionCall.getArguments().size() == 0) {
-                                throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog kylin or druid '%s' cannot be supported in group by", "count(*)");
-                            }
-                            if (OptimizeSettingUtil.isDruidCatalog(catalog) &&
-                                    functionCall.getName().toString().equalsIgnoreCase("format_datetime") &&
-                                    ((functionCall.getArguments().get(0) instanceof Identifier && ((Identifier) functionCall.getArguments().get(0)).getValue().equalsIgnoreCase("__time")) ||
-                                    (functionCall.getArguments().get(0) instanceof DereferenceExpression && ((DereferenceExpression) functionCall.getArguments().get(0)).getField().getValue().equalsIgnoreCase("__time")))) {
-                                reConstructSelect.add(singleColumn);
-                                List<Expression> arguments = new ArrayList<>();
-                                arguments.add(singleColumn.getExpression());
-                                arguments.add(functionCall.getArguments().get(1));
-                                arguments.add(new StringLiteral("+08:00"));
-                                fields.add(new FunctionCall(QualifiedName.of("TIME_PARSE"), arguments).toString().replaceAll("\"", ""));
-                            } else {
-                                Expression column = deepTraversalFunctionCall(functionCall);
-                                reConstructSelect.add(new SingleColumn(column, singleColumn.getAlias()));
-                                fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
-                            }
-                        } else {
-                            reConstructSelect.add(singleColumn);
-                            fields.add(singleColumn.getExpression().toString().replaceAll("\"", ""));
-                        }
-                    } else {
-                        reConstructSelect.add(singleColumn);
-                        fields.add(singleColumn.getExpression().toString());
-                    }
+                    singleColumn = rewriteSingleColumn(singleColumn, catalog, fields);
+                    reConstructSelect.add(singleColumn);
                 } else if (field instanceof AllColumns) {
                     reConstructSelect.add(field);
                 }
@@ -151,27 +128,26 @@ public class OptimizePlanTreeUtil {
             sql.append("from").append(StringUtils.SPACE).append("{tableName}").append(StringUtils.SPACE);
             if (where.isPresent()) {
                 sql.append("where").append(StringUtils.SPACE).append(where.get().toString().replaceAll("\"", "")).append(StringUtils.SPACE);
-                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                    planTree.setWhere(Optional.empty());
-                }
+                planTree.setWhere(Optional.empty());
             }
             if (groupBy.isPresent()) {
                 List<String> groups = new ArrayList<>();
                 List<GroupingElement> groupElements = groupBy.get().getGroupingElements();
                 for (GroupingElement item : groupElements) {
                     for (Node node : item.getChildren()) {
+                        if (node instanceof FunctionCall) {
+                            if (OptimizeSettingUtil.isKylinCatalog(catalog) || (OptimizeSettingUtil.isDruidCatalog(catalog) && !OptimizeSettingUtil.isDruidPushDownDateUDF((FunctionCall) node))) {
+                                throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, node, "catalog %s group by '%s' cannot be supported", catalog, node.toString());
+                            }
+                        }
                         groups.add(node.toString());
                     }
                 }
                 sql.append("group by").append(StringUtils.SPACE).append(StringUtils.join(groups, ",")).append(StringUtils.SPACE);
-                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                    planTree.setGroupBy(Optional.empty());
-                }
+                planTree.setGroupBy(Optional.empty());
                 if (having.isPresent()) {
                     sql.append("having").append(StringUtils.SPACE).append(having.get().toString().replaceAll("\"", "")).append(StringUtils.SPACE);
-                    if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                        planTree.setHaving(Optional.empty());
-                    }
+                    planTree.setHaving(Optional.empty());
                 }
             }
             if (orderBy.isPresent()) {
@@ -202,20 +178,14 @@ public class OptimizePlanTreeUtil {
                     }
                 }
                 if (sorts.size() > 0) sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
-                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                    planTree.setOrderBy(Optional.empty());
-                }
+                planTree.setOrderBy(Optional.empty());
             }
             if (limit.isPresent()) {
                 sql.append("limit").append(StringUtils.SPACE).append(limit.get());
-                if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                    planTree.setLimit(Optional.empty());
-                }
+                planTree.setLimit(Optional.empty());
             }
-            if (OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
-                planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
-            }
-            allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, fields));
+            planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
+            allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, new ArrayList<>(fields)));
         }
     }
 
@@ -239,18 +209,69 @@ public class OptimizePlanTreeUtil {
         }
     }
 
-    private static Expression deepTraversalFunctionCall(FunctionCall functionCall) {
-        List<Expression> args = functionCall.getArguments();
-        for (Expression arg : args) {
-            if (arg instanceof Identifier) {
-                return arg;
-            } else if (arg instanceof FunctionCall) {
-                return deepTraversalFunctionCall((FunctionCall) arg);
-            } else if (arg instanceof DereferenceExpression) {
-                return ((DereferenceExpression) arg).getField();
+    private static SingleColumn rewriteSingleColumn(SingleColumn singleColumn, String catalog, Set<String> fields) {
+        Expression expression = singleColumn.getExpression();
+        expression = deepTraversalSelect(expression, catalog, fields);
+        return new SingleColumn(expression, singleColumn.getAlias());
+    }
+
+    private static Expression deepTraversalSelect(Expression expression, String catalog, Set<String> fields) {
+        if (expression instanceof Identifier) {
+            fields.add(expression.toString());
+        } else if (expression instanceof DereferenceExpression) {
+            fields.add(((DereferenceExpression) expression).getField().toString());
+        } else if (expression instanceof FunctionCall) {
+            FunctionCall functionCall = (FunctionCall) expression;
+            if (OptimizeSettingUtil.isDruidCatalog(catalog) && OptimizeSettingUtil.isDruidPushDownDateUDF(functionCall)) {
+                List<Expression> arguments = new ArrayList<>();
+                arguments.add(expression);
+                arguments.add(functionCall.getArguments().get(1));
+                arguments.add(new StringLiteral("+08:00"));
+                fields.add(new FunctionCall(QualifiedName.of("TIME_PARSE"), arguments).toString().replaceAll("\"", ""));
+            } else if (OptimizeSettingUtil.isNeedOptimizeUDF(functionCall)) {
+                Expression firstArgument = functionCall.getArguments().get(0);
+                fields.add(expression.toString().replaceAll("\"", ""));
+                expression = firstArgument instanceof DereferenceExpression ? ((DereferenceExpression) firstArgument).getField() : firstArgument;
+            } else {
+                List<Expression> arguments = functionCall.getArguments();
+                List<Expression> newArguments = new ArrayList<>();
+                for (Expression argument : arguments) {
+                    newArguments.add(deepTraversalSelect(argument, catalog, fields));
+                }
+                expression = new FunctionCall(functionCall.getName(), functionCall.getWindow(), functionCall.getFilter(), functionCall.getOrderBy(), functionCall.isDistinct(), newArguments);
             }
+        } else if (expression instanceof ArithmeticBinaryExpression) {
+            ArithmeticBinaryExpression arithmeticBinaryExpression = (ArithmeticBinaryExpression) expression;
+            Expression newLeft = deepTraversalSelect(arithmeticBinaryExpression.getLeft(), catalog, fields);
+            Expression newRight = deepTraversalSelect(arithmeticBinaryExpression.getRight(), catalog, fields);
+            return new ArithmeticBinaryExpression(arithmeticBinaryExpression.getOperator(), newLeft, newRight);
+        } else if (expression instanceof ComparisonExpression) {
+            ComparisonExpression comparisonExpression = (ComparisonExpression) expression;
+            Expression newLeft = deepTraversalSelect(comparisonExpression.getLeft(), catalog, fields);
+            Expression newRight = deepTraversalSelect(comparisonExpression.getRight(), catalog, fields);
+            return new ComparisonExpression(comparisonExpression.getOperator(), newLeft, newRight);
+        } else if (expression instanceof Cast) {
+            Cast cast = (Cast) expression;
+            Expression newCast = deepTraversalSelect(cast.getExpression(), catalog, fields);
+            return new Cast(newCast, cast.getType(), cast.isSafe(), cast.isTypeOnly());
+        } else if (expression instanceof IfExpression) {
+            IfExpression ifExpression = (IfExpression) expression;
+            Expression newCondition = deepTraversalSelect(ifExpression.getCondition(), catalog, fields);
+            Expression newTrueValue = deepTraversalSelect(ifExpression.getTrueValue(), catalog, fields);
+            Expression newFalseValue = deepTraversalSelect(ifExpression.getFalseValue().get(), catalog, fields);
+            return new IfExpression(newCondition, newTrueValue, newFalseValue);
+        } else if (expression instanceof SearchedCaseExpression) {
+            SearchedCaseExpression searchedCaseExpression = (SearchedCaseExpression) expression;
+            List<WhenClause> whenClauseList = searchedCaseExpression.getWhenClauses();
+            List<WhenClause> newWhenClauseList = new ArrayList<>();
+            for (WhenClause whenClause : whenClauseList) {
+                WhenClause newWhenClause = new WhenClause(deepTraversalSelect(whenClause.getOperand(), catalog, fields), deepTraversalSelect(whenClause.getResult(), catalog, fields));
+                newWhenClauseList.add(newWhenClause);
+            }
+            Optional<Expression> newDefaultValue = searchedCaseExpression.getDefaultValue().isPresent() ? Optional.of(deepTraversalSelect(searchedCaseExpression.getDefaultValue().get(), catalog, fields)) : searchedCaseExpression.getDefaultValue();
+            return new SearchedCaseExpression(newWhenClauseList, newDefaultValue);
         }
-        return args.get(0);
+        return expression;
     }
 
     public static void optimizeAliasePushDown(PlanNode root, AliasedRelation node) {
@@ -269,5 +290,25 @@ public class OptimizePlanTreeUtil {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static boolean countCheckPushDown(List<SelectItem> selectItems, boolean hasGroupBy, String catalog) {
+        boolean isNeedPushDown = true;
+        for (SelectItem selectItem : selectItems) {
+            if (selectItem instanceof SingleColumn) {
+                SingleColumn singleColumn = (SingleColumn) selectItem;
+                if (singleColumn.getExpression() instanceof FunctionCall) {
+                    FunctionCall functionCall = (FunctionCall) singleColumn.getExpression();
+                    if (OptimizeSettingUtil.isCountUDF(functionCall)) {
+                        if (functionCall.getArguments().size() == 0) {
+                            throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog %s select '%s' cannot be supported", catalog, "count(*)");
+                        } else if (hasGroupBy) {
+                            isNeedPushDown = false;
+                        }
+                    }
+                }
+            }
+        }
+        return isNeedPushDown;
     }
 }

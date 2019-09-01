@@ -16,7 +16,6 @@ package com.facebook.presto.util;
 import com.facebook.presto.optimize.ObjectMysqlUtil;
 import com.facebook.presto.optimize.OptimizeObj;
 import com.facebook.presto.optimize.OptimizeServerConfigUtil;
-import com.facebook.presto.optimize.OptimizeSettingUtil;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.*;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +34,7 @@ public class OptimizePredicatePushdownUtil {
             Expression rootLeftExpression = rootExpression.getLeft();
             Expression rootRightExpression = rootExpression.getRight();
             if (!rootOperator.equals(ComparisonExpression.Operator.IS_DISTINCT_FROM) && rootLeftExpression instanceof ArithmeticBinaryExpression &&
-                    (rootRightExpression instanceof LongLiteral || rootRightExpression instanceof DoubleLiteral)) {
+                (rootRightExpression instanceof LongLiteral || rootRightExpression instanceof DoubleLiteral)) {
                 ArithmeticBinaryExpression childExpression = (ArithmeticBinaryExpression) rootLeftExpression;
                 Expression childLeftExpression = childExpression.getLeft();
                 Expression childRightExpression = childExpression.getRight();
