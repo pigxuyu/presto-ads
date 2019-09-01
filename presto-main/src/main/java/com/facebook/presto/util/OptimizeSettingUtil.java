@@ -64,7 +64,7 @@ public class OptimizeSettingUtil {
     public static boolean isNeedOptimizeUDF(FunctionCall functionCall) {
         String functionCallName = functionCall.getName().toString();
         Expression firstArgument = functionCall.getArguments().get(0);
-        boolean matchFunctionName = optimizePushDownUdfMap.containsKey(functionCallName.toLowerCase());
+        boolean matchFunctionName = optimizePushDownUdfMap.containsKey(functionCallName.toLowerCase(java.util.Locale.getDefault()));
         boolean matchArgument = firstArgument instanceof Identifier || firstArgument instanceof DereferenceExpression;
         return matchFunctionName && matchArgument;
     }
