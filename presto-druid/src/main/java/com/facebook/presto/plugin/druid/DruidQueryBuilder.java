@@ -159,6 +159,9 @@ public class DruidQueryBuilder extends QueryBuilder {
                         finalColumns.add(jdbcColumnName + " " + jdbcColumnName);
                     }
                 }
+                if (finalColumns.isEmpty()) {
+                    finalColumns.add("1");
+                }
                 List<String> conditions = new ArrayList<>(clauses);
                 if(allWhereCondition.containsKey(key)) {
                     conditions.add(allWhereCondition.get(key));

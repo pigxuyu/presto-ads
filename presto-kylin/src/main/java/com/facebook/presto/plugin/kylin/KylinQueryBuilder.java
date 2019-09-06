@@ -163,6 +163,9 @@ public class KylinQueryBuilder extends QueryBuilder {
                         finalColumns.add(jdbcColumnName + " " + jdbcColumnName);
                     }
                 }
+                if (finalColumns.isEmpty()) {
+                    finalColumns.add("1");
+                }
                 boolean hasWhere = baseSql.contains("where");
                 String wherePushDown = !clauses.isEmpty() ? Joiner.on(" AND ").join(clauses) + (hasWhere ? " AND " : "") : "";
                 return baseSql.replace("{tableName}", tableInfo.toString() + (!hasWhere && !clauses.isEmpty() ? " where " : ""))
