@@ -33,18 +33,16 @@ public class OptimizePredicatePushdownUtil {
             ComparisonExpression.Operator rootOperator = rootExpression.getOperator();
             Expression rootLeftExpression = rootExpression.getLeft();
             Expression rootRightExpression = rootExpression.getRight();
-            if (!rootOperator.equals(ComparisonExpression.Operator.IS_DISTINCT_FROM) && rootLeftExpression instanceof ArithmeticBinaryExpression &&
-                (rootRightExpression instanceof LongLiteral || rootRightExpression instanceof DoubleLiteral)) {
+            if (!rootOperator.equals(ComparisonExpression.Operator.IS_DISTINCT_FROM) && rootLeftExpression instanceof ArithmeticBinaryExpression && isNumberLiteral(rootRightExpression)) {
                 ArithmeticBinaryExpression childExpression = (ArithmeticBinaryExpression) rootLeftExpression;
                 Expression childLeftExpression = childExpression.getLeft();
                 Expression childRightExpression = childExpression.getRight();
                 ArithmeticBinaryExpression.Operator childOperator = childExpression.getOperator();
 
-                if (!childOperator.equals(ArithmeticBinaryExpression.Operator.MODULUS) && childLeftExpression instanceof SymbolReference &&
-                        (childRightExpression instanceof LongLiteral || childRightExpression instanceof DoubleLiteral)) {
+                if (!childOperator.equals(ArithmeticBinaryExpression.Operator.MODULUS) && childLeftExpression instanceof SymbolReference && isNumberLiteral(childRightExpression)) {
                     Double finalVaule;
-                    Double leftValue = rootRightExpression instanceof DoubleLiteral ? ((DoubleLiteral) rootRightExpression).getValue() : ((LongLiteral) rootRightExpression).getValue();
-                    Double rightValue = childRightExpression instanceof DoubleLiteral ? ((DoubleLiteral) childRightExpression).getValue() : ((LongLiteral) childRightExpression).getValue();
+                    Double leftValue = rootRightExpression instanceof DoubleLiteral ? getDoubleLiteralVaule(rootRightExpression) : (rootRightExpression instanceof LongLiteral ? getLongLiteralVaule(rootRightExpression) : getGenericLiteralVaule(rootRightExpression));
+                    Double rightValue = childRightExpression instanceof DoubleLiteral ? getDoubleLiteralVaule(childRightExpression) : (childRightExpression instanceof LongLiteral ? getLongLiteralVaule(childRightExpression) : getGenericLiteralVaule(childRightExpression));
                     switch (childOperator) {
                         case ADD:
                             finalVaule = leftValue - rightValue;
@@ -64,7 +62,9 @@ public class OptimizePredicatePushdownUtil {
                     rootLeftExpression = childLeftExpression;
                     rootRightExpression = (rootRightExpression instanceof DoubleLiteral || childRightExpression instanceof DoubleLiteral)
                             ? new DoubleLiteral(String.valueOf(finalVaule))
-                            : new LongLiteral(String.valueOf(finalVaule.longValue()));
+                            : ((rootRightExpression instanceof LongLiteral || childRightExpression instanceof LongLiteral)
+                            ? new LongLiteral(String.valueOf(finalVaule.longValue()))
+                            : new GenericLiteral(((GenericLiteral) rootRightExpression).getType(), String.valueOf(finalVaule.longValue())));
                     rootExpression.left = rootLeftExpression;
                     rootExpression.right = rootRightExpression;
                 }
@@ -134,5 +134,23 @@ public class OptimizePredicatePushdownUtil {
             return "(" + genWhereCondition(expression.getLeft()) + " " + expression.getOperator().name() + " " + genWhereCondition(expression.getRight()) + ")";
         }
         return null;
+    }
+
+    private static boolean isNumberLiteral(Expression expression) {
+        return expression instanceof LongLiteral
+                || expression instanceof DoubleLiteral
+                || (expression instanceof GenericLiteral && "BIGINT".equalsIgnoreCase(((GenericLiteral) expression).getType()));
+    }
+
+    private static Long getLongLiteralVaule(Expression expression) {
+        return ((LongLiteral) expression).getValue();
+    }
+
+    private static Double getDoubleLiteralVaule(Expression expression) {
+        return ((DoubleLiteral) expression).getValue();
+    }
+
+    private static Long getGenericLiteralVaule(Expression expression) {
+        return Long.valueOf(((GenericLiteral) expression).getValue());
     }
 }
