@@ -40,31 +40,34 @@ public class OptimizePredicatePushdownUtil {
                 ArithmeticBinaryExpression.Operator childOperator = childExpression.getOperator();
 
                 if (!childOperator.equals(ArithmeticBinaryExpression.Operator.MODULUS) && childLeftExpression instanceof SymbolReference && isNumberLiteral(childRightExpression)) {
-                    Double finalVaule;
                     Double leftValue = rootRightExpression instanceof DoubleLiteral ? getDoubleLiteralVaule(rootRightExpression) : (rootRightExpression instanceof LongLiteral ? getLongLiteralVaule(rootRightExpression) : getGenericLiteralVaule(rootRightExpression));
                     Double rightValue = childRightExpression instanceof DoubleLiteral ? getDoubleLiteralVaule(childRightExpression) : (childRightExpression instanceof LongLiteral ? getLongLiteralVaule(childRightExpression) : getGenericLiteralVaule(childRightExpression));
-                    switch (childOperator) {
-                        case ADD:
-                            finalVaule = leftValue - rightValue;
-                            break;
-                        case DIVIDE:
-                            finalVaule = leftValue * rightValue;
-                            break;
-                        case MULTIPLY:
-                            finalVaule = leftValue / rightValue;
-                            break;
-                        case SUBTRACT:
-                            finalVaule = leftValue + rightValue;
-                            break;
-                        default:
-                            return;
-                    }
+                    Double finalVaule = simpleArithmeticBinaryExpressionCalculate(leftValue, rightValue, childOperator);
                     rootLeftExpression = childLeftExpression;
                     rootRightExpression = (rootRightExpression instanceof DoubleLiteral || childRightExpression instanceof DoubleLiteral)
                             ? new DoubleLiteral(String.valueOf(finalVaule))
                             : ((rootRightExpression instanceof LongLiteral || childRightExpression instanceof LongLiteral)
                             ? new LongLiteral(String.valueOf(finalVaule.longValue()))
                             : new GenericLiteral(((GenericLiteral) rootRightExpression).getType(), String.valueOf(finalVaule.longValue())));
+                    rootExpression.left = rootLeftExpression;
+                    rootExpression.right = rootRightExpression;
+                }
+            } else if (rootOperator.equals(ComparisonExpression.Operator.EQUAL) && rootRightExpression instanceof ArithmeticBinaryExpression && isNumberLiteral(rootLeftExpression)) {
+                ArithmeticBinaryExpression childExpression = (ArithmeticBinaryExpression) rootRightExpression;
+                Expression childLeftExpression = childExpression.getLeft();
+                Expression childRightExpression = childExpression.getRight();
+                ArithmeticBinaryExpression.Operator childOperator = childExpression.getOperator();
+
+                if (!childOperator.equals(ArithmeticBinaryExpression.Operator.MODULUS) && childLeftExpression instanceof SymbolReference && isNumberLiteral(childRightExpression)) {
+                    Double leftValue = rootLeftExpression instanceof DoubleLiteral ? getDoubleLiteralVaule(rootLeftExpression) : (rootLeftExpression instanceof LongLiteral ? getLongLiteralVaule(rootLeftExpression) : getGenericLiteralVaule(rootLeftExpression));
+                    Double rightValue = childRightExpression instanceof DoubleLiteral ? getDoubleLiteralVaule(childRightExpression) : (childRightExpression instanceof LongLiteral ? getLongLiteralVaule(childRightExpression) : getGenericLiteralVaule(childRightExpression));
+                    Double finalVaule = simpleArithmeticBinaryExpressionCalculate(leftValue, rightValue, childOperator);
+                    rootRightExpression = (rootLeftExpression instanceof DoubleLiteral || rootLeftExpression instanceof DoubleLiteral)
+                            ? new DoubleLiteral(String.valueOf(finalVaule))
+                            : ((rootLeftExpression instanceof LongLiteral || rootLeftExpression instanceof LongLiteral)
+                            ? new LongLiteral(String.valueOf(finalVaule.longValue()))
+                            : new GenericLiteral(((GenericLiteral) rootLeftExpression).getType(), String.valueOf(finalVaule.longValue())));
+                    rootLeftExpression = childLeftExpression;
                     rootExpression.left = rootLeftExpression;
                     rootExpression.right = rootRightExpression;
                 }
@@ -152,5 +155,26 @@ public class OptimizePredicatePushdownUtil {
 
     private static Long getGenericLiteralVaule(Expression expression) {
         return Long.valueOf(((GenericLiteral) expression).getValue());
+    }
+
+    private static Double simpleArithmeticBinaryExpressionCalculate(Double leftValue, Double rightValue, ArithmeticBinaryExpression.Operator childOperator) {
+        Double finalVaule = null;
+        switch (childOperator) {
+            case ADD:
+                finalVaule = leftValue - rightValue;
+                break;
+            case DIVIDE:
+                finalVaule = leftValue * rightValue;
+                break;
+            case MULTIPLY:
+                finalVaule = leftValue / rightValue;
+                break;
+            case SUBTRACT:
+                finalVaule = leftValue + rightValue;
+                break;
+            default:
+                break;
+        }
+        return finalVaule;
     }
 }
