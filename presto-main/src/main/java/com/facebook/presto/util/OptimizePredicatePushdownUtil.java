@@ -13,14 +13,14 @@
  */
 package com.facebook.presto.util;
 
-import com.facebook.presto.optimize.ObjectMysqlUtil;
-import com.facebook.presto.optimize.OptimizeObj;
-import com.facebook.presto.optimize.OptimizeServerConfigUtil;
-import com.facebook.presto.sql.analyzer.SemanticException;
-import com.facebook.presto.sql.tree.*;
-import org.apache.commons.lang3.StringUtils;
+        import com.facebook.presto.optimize.ObjectMysqlUtil;
+        import com.facebook.presto.optimize.OptimizeObj;
+        import com.facebook.presto.optimize.OptimizeServerConfigUtil;
+        import com.facebook.presto.sql.analyzer.SemanticException;
+        import com.facebook.presto.sql.tree.*;
+        import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
+        import java.util.List;
 
 /**
  * Created by Administrator on 2018/12/11.
