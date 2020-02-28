@@ -13,10 +13,29 @@
  */
 package com.facebook.presto.plugin.druid;
 
-import com.facebook.presto.plugin.jdbc.JdbcPlugin;
+import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.connector.ConnectorFactory;
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Module;
 
-public class DruidPlugin extends JdbcPlugin {
+import static com.google.common.base.MoreObjects.firstNonNull;
+
+public class DruidPlugin implements Plugin {
+
+    private final String name;
+    private final Module module;
+
     public DruidPlugin() {
-        super("druid", new DruidClientModule());
+        this.name = "druid";
+        this.module = new DruidClientModule();
+    }
+
+    @Override
+    public Iterable<ConnectorFactory> getConnectorFactories() {
+        return ImmutableList.of(new DruidConnectorFactory(name, module, getClassLoader()));
+    }
+
+    private static ClassLoader getClassLoader() {
+        return firstNonNull(Thread.currentThread().getContextClassLoader(), DruidPlugin.class.getClassLoader());
     }
 }

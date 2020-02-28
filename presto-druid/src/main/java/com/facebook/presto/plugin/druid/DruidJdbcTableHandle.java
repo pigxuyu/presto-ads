@@ -22,9 +22,8 @@ import com.google.common.base.Joiner;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-public class DruidJdbcTableHandle
-        extends JdbcTableHandle
-{
+public class DruidJdbcTableHandle extends JdbcTableHandle {
+
     private final String tableAliasName;
 
     @JsonCreator
@@ -34,21 +33,19 @@ public class DruidJdbcTableHandle
             @JsonProperty("catalogName") @Nullable String catalogName,
             @JsonProperty("schemaName") @Nullable String schemaName,
             @JsonProperty("tableName") String tableName,
-            @JsonProperty("tableAliasName") String tableAliasName)
-    {
+            @JsonProperty("tableAliasName") String tableAliasName) {
+
         super(connectorId, schemaTableName, catalogName, schemaName, tableName);
         this.tableAliasName = tableAliasName;
     }
 
     @JsonProperty
-    public String getAliasName()
-    {
+    public String getAliasName() {
         return tableAliasName;
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -62,14 +59,12 @@ public class DruidJdbcTableHandle
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hash(connectorId, schemaTableName, tableAliasName);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return Joiner.on(":").useForNull("null").join(connectorId, schemaTableName, catalogName, schemaName, tableName, tableAliasName);
     }
 }

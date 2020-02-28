@@ -13,10 +13,29 @@
  */
 package com.facebook.presto.plugin.kylin;
 
-import com.facebook.presto.plugin.jdbc.JdbcPlugin;
+import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.connector.ConnectorFactory;
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Module;
 
-public class KylinPlugin extends JdbcPlugin {
+import static com.google.common.base.MoreObjects.firstNonNull;
+
+public class KylinPlugin implements Plugin {
+
+    private final String name;
+    private final Module module;
+
     public KylinPlugin() {
-        super("kylin", new KylinClientModule());
+        this.name = "kylin";
+        this.module = new KylinClientModule();
+    }
+
+    @Override
+    public Iterable<ConnectorFactory> getConnectorFactories() {
+        return ImmutableList.of(new KylinConnectorFactory(name, module, getClassLoader()));
+    }
+
+    private static ClassLoader getClassLoader() {
+        return firstNonNull(Thread.currentThread().getContextClassLoader(), KylinPlugin.class.getClassLoader());
     }
 }

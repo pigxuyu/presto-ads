@@ -22,9 +22,12 @@ import io.airlift.configuration.AbstractConfigurationAwareModule;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class DruidClientModule extends AbstractConfigurationAwareModule {
+
     @Override
     protected void setup(Binder binder) {
         binder.bind(JdbcClient.class).to(DruidClient.class).in(Scopes.SINGLETON);
+        binder.bind(DruidMetadataFactory.class).in(Scopes.SINGLETON);
+        binder.bind(DruidConnector.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
         configBinder(binder).bindConfig(DruidConfig.class);
     }

@@ -16,6 +16,7 @@ package com.facebook.presto.plugin.druid;
 import com.facebook.presto.optimize.ObjectMysqlUtil;
 import com.facebook.presto.optimize.OptimizeObj;
 import com.facebook.presto.optimize.OptimizeTable;
+import com.facebook.presto.optimize.OptimizeUdfUtil;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.QueryBuilder;
@@ -151,7 +152,7 @@ public class DruidQueryBuilder extends QueryBuilder {
                     for (String col : analysisColumns) {
                         String columnExpress = col.trim().replaceAll("(?i)" + key + "(\\.)", "").replaceAll("(?i)" + tableAliasName + "(\\.)", "").toUpperCase();
                         if (ArrayUtils.contains(StringUtils.split(columnExpress, "(), "), jdbcColumnName.toUpperCase())) {
-                            finalColumns.add(col);
+                            finalColumns.add(OptimizeUdfUtil.udfMapping(col));
                             isMatch = true;
                         }
                     }

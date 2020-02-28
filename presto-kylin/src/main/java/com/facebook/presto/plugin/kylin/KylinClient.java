@@ -13,11 +13,9 @@
  */
 package com.facebook.presto.plugin.kylin;
 
+import com.facebook.presto.optimize.OptimizeConstant;
 import com.facebook.presto.plugin.jdbc.*;
-import com.facebook.presto.spi.ConnectorSplitSource;
-import com.facebook.presto.spi.FixedSplitSource;
-import com.facebook.presto.spi.PrestoException;
-import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.*;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -26,10 +24,7 @@ import org.apache.kylin.jdbc.Driver;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import static com.facebook.presto.plugin.jdbc.DriverConnectionFactory.basicConnectionProperties;
 import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
@@ -139,6 +134,41 @@ public class KylinClient extends BaseJdbcClient {
                 return getOnlyElement(tableHandles);
             }
         } catch (SQLException e) {
+            throw new PrestoException(JDBC_ERROR, e);
+        }
+    }
+
+    @Override
+    public List<JdbcColumnHandle> getColumns(ConnectorSession session, JdbcTableHandle tableHandle) {
+        try (Connection connection = connectionFactory.openConnection()) {
+            String escape = connection.getMetaData().getSearchStringEscape();
+            try (ResultSet resultSet = connection.getMetaData().getColumns(tableHandle.getCatalogName(), escapeNamePattern(tableHandle.getSchemaName(), escape), escapeNamePattern(tableHandle.getTableName(), escape), null)) {
+                List<JdbcColumnHandle> columns = new ArrayList<>();
+                while (resultSet.next()) {
+                    JdbcTypeHandle typeHandle = new JdbcTypeHandle(
+                            resultSet.getInt("DATA_TYPE"),
+                            resultSet.getInt("COLUMN_SIZE"),
+                            resultSet.getInt("DECIMAL_DIGITS"));
+                    Optional<ReadMapping> columnMapping = toPrestoType(session, typeHandle);
+                    // skip unsupported column types
+                    if (columnMapping.isPresent()) {
+                        String columnName = resultSet.getString("COLUMN_NAME");
+                        columns.add(new JdbcColumnHandle(connectorId, columnName, typeHandle, columnMapping.get().getType()));
+
+                        JdbcTypeHandle countTypeHandle = new JdbcTypeHandle(-5, -1, -1);
+                        Optional<ReadMapping> countColumnMapping = toPrestoType(session, countTypeHandle);
+                        columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT + columnName, countTypeHandle, countColumnMapping.get().getType()));
+                        columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT_DISTINCT + columnName, countTypeHandle, countColumnMapping.get().getType()));
+                    }
+                }
+                if (columns.isEmpty()) {
+                    // In rare cases (e.g. PostgreSQL) a table might have no columns.
+                    throw new TableNotFoundException(tableHandle.getSchemaTableName());
+                }
+                return ImmutableList.copyOf(columns);
+            }
+        }
+        catch (SQLException e) {
             throw new PrestoException(JDBC_ERROR, e);
         }
     }

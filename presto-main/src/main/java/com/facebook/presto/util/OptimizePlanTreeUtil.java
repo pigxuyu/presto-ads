@@ -14,10 +14,7 @@
 package com.facebook.presto.util;
 
 import com.facebook.presto.metadata.TableHandle;
-import com.facebook.presto.optimize.ObjectMysqlUtil;
-import com.facebook.presto.optimize.OptimizeObj;
-import com.facebook.presto.optimize.OptimizeServerConfigUtil;
-import com.facebook.presto.optimize.OptimizeTable;
+import com.facebook.presto.optimize.*;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.planner.plan.PlanNode;
@@ -228,10 +225,16 @@ public class OptimizePlanTreeUtil {
                 arguments.add(functionCall.getArguments().get(1));
                 arguments.add(new StringLiteral("+08:00"));
                 fields.add(new FunctionCall(QualifiedName.of("TIME_PARSE"), arguments).toString().replaceAll("\"", ""));
-            } else if (OptimizeSettingUtil.isNeedOptimizeUDF(functionCall)) {
+            } else if (OptimizeSettingUtil.isNeedOptimizeAggUDF(functionCall)) {
                 Expression firstArgument = functionCall.getArguments().get(0);
                 fields.add(expression.toString().replaceAll("\"", ""));
                 expression = firstArgument instanceof DereferenceExpression ? ((DereferenceExpression) firstArgument).getField() : firstArgument;
+            } else if (OptimizeSettingUtil.isNeedOptimizeCountUDF(functionCall)) {
+                Expression firstArgument = functionCall.getArguments().get(0);
+                String prefix = functionCall.isDistinct() ? OptimizeConstant.COUNT_DISTINCT : OptimizeConstant.COUNT;
+                String identifierName = firstArgument instanceof DereferenceExpression ? ((DereferenceExpression) firstArgument).getField().getValue() : ((Identifier) firstArgument).getValue();
+                fields.add(prefix + identifierName);
+                expression = new Identifier(prefix + identifierName);
             } else {
                 List<Expression> arguments = functionCall.getArguments();
                 List<Expression> newArguments = new ArrayList<>();
@@ -302,8 +305,12 @@ public class OptimizePlanTreeUtil {
                     if (OptimizeSettingUtil.isCountUDF(functionCall)) {
                         if (functionCall.getArguments().size() == 0) {
                             throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog %s select '%s' cannot be supported", catalog, "count(*)");
-                        } else if (hasGroupBy) {
-                            isNeedPushDown = false;
+                        }
+                        if (functionCall.getArguments().size() == 1) {
+                            Expression expression = functionCall.getArguments().get(0);
+                            if (expression instanceof LongLiteral && ((LongLiteral) expression).getValue() == 1) {
+                                throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog %s select '%s' cannot be supported", catalog, "count(1)");
+                            }
                         }
                     }
                 }

@@ -22,9 +22,12 @@ import io.airlift.configuration.AbstractConfigurationAwareModule;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class KylinClientModule extends AbstractConfigurationAwareModule {
+
     @Override
     protected void setup(Binder binder) {
         binder.bind(JdbcClient.class).to(KylinClient.class).in(Scopes.SINGLETON);
+        binder.bind(KylinMetadataFactory.class).in(Scopes.SINGLETON);
+        binder.bind(KylinConnector.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
         configBinder(binder).bindConfig(KylinConfig.class);
     }

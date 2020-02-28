@@ -61,10 +61,18 @@ public class OptimizeSettingUtil {
         return matchFunctionName && matchArgument;
     }
 
-    public static boolean isNeedOptimizeUDF(FunctionCall functionCall) {
+    public static boolean isNeedOptimizeAggUDF(FunctionCall functionCall) {
         String functionCallName = functionCall.getName().toString();
         Expression firstArgument = functionCall.getArguments().get(0);
-        boolean matchFunctionName = optimizePushDownUdfMap.containsKey(functionCallName.toLowerCase(java.util.Locale.getDefault()));
+        boolean matchFunctionName = optimizePushDownUdfMap.containsKey(functionCallName.toLowerCase(Locale.getDefault()));
+        boolean matchArgument = firstArgument instanceof Identifier || firstArgument instanceof DereferenceExpression;
+        return matchFunctionName && matchArgument;
+    }
+
+    public static boolean isNeedOptimizeCountUDF(FunctionCall functionCall) {
+        String functionCallName = functionCall.getName().toString();
+        Expression firstArgument = functionCall.getArguments().get(0);
+        boolean matchFunctionName = "count".equalsIgnoreCase(functionCallName.toLowerCase(Locale.getDefault()));
         boolean matchArgument = firstArgument instanceof Identifier || firstArgument instanceof DereferenceExpression;
         return matchFunctionName && matchArgument;
     }

@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.plugin.druid;
 
+import com.facebook.presto.optimize.OptimizeConstant;
 import com.facebook.presto.plugin.jdbc.*;
 import com.facebook.presto.spi.*;
 import com.facebook.presto.spi.type.CharType;
@@ -163,6 +164,11 @@ public class DruidClient extends BaseJdbcClient {
                     if (columnMapping.isPresent()) {
                         String columnName = resultSet.getString("COLUMN_NAME");
                         columns.add(new JdbcColumnHandle(connectorId, columnName, typeHandle, columnMapping.get().getType()));
+
+                        JdbcTypeHandle countTypeHandle = new JdbcTypeHandle(-5, -1, -1);
+                        Optional<ReadMapping> countColumnMapping = toPrestoType(session, countTypeHandle);
+                        columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT + columnName, countTypeHandle, countColumnMapping.get().getType()));
+                        columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT_DISTINCT + columnName, countTypeHandle, countColumnMapping.get().getType()));
                     }
                 }
                 if (columns.isEmpty()) {
