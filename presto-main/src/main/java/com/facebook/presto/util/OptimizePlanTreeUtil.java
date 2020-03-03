@@ -102,7 +102,6 @@ public class OptimizePlanTreeUtil {
             Optional<OrderBy> orderBy = planTree.getOrderBy();
             Optional<String> limit = planTree.getLimit();
 
-            if (!countCheckPushDown(select.getSelectItems(), groupBy.isPresent(), catalog)) return;
             List<SelectItem> reConstructSelect = new ArrayList<>();
             Set<String> fields = new HashSet<>();
             for (int index = 0;index < select.getSelectItems().size();index++) {
@@ -230,9 +229,20 @@ public class OptimizePlanTreeUtil {
                 fields.add(expression.toString().replaceAll("\"", ""));
                 expression = firstArgument instanceof DereferenceExpression ? ((DereferenceExpression) firstArgument).getField() : firstArgument;
             } else if (OptimizeSettingUtil.isNeedOptimizeCountUDF(functionCall)) {
-                Expression firstArgument = functionCall.getArguments().get(0);
                 String prefix = functionCall.isDistinct() ? OptimizeConstant.COUNT_DISTINCT : OptimizeConstant.COUNT;
-                String identifierName = firstArgument instanceof DereferenceExpression ? ((DereferenceExpression) firstArgument).getField().getValue() : ((Identifier) firstArgument).getValue();
+                String identifierName;
+                if (functionCall.getArguments().isEmpty()) {
+                    identifierName = OptimizeConstant.ALL;
+                } else {
+                    Expression firstArgument = functionCall.getArguments().get(0);
+                    if (firstArgument instanceof DereferenceExpression || firstArgument instanceof Identifier) {
+                        identifierName = firstArgument instanceof DereferenceExpression ? ((DereferenceExpression) firstArgument).getField().getValue() : ((Identifier) firstArgument).getValue();
+                    } else if (firstArgument instanceof Identifier || firstArgument instanceof DereferenceExpression || firstArgument instanceof LongLiteral) {
+                        identifierName = OptimizeConstant.ALL;
+                    } else {
+                        throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, expression, "catalog %s select '%s' cannot be supported", catalog, expression.toString());
+                    }
+                }
                 fields.add(prefix + identifierName);
                 expression = new Identifier(prefix + identifierName);
             } else {
@@ -293,29 +303,5 @@ public class OptimizePlanTreeUtil {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private static boolean countCheckPushDown(List<SelectItem> selectItems, boolean hasGroupBy, String catalog) {
-        boolean isNeedPushDown = true;
-        for (SelectItem selectItem : selectItems) {
-            if (selectItem instanceof SingleColumn) {
-                SingleColumn singleColumn = (SingleColumn) selectItem;
-                if (singleColumn.getExpression() instanceof FunctionCall) {
-                    FunctionCall functionCall = (FunctionCall) singleColumn.getExpression();
-                    if (OptimizeSettingUtil.isCountUDF(functionCall)) {
-                        if (functionCall.getArguments().size() == 0) {
-                            throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog %s select '%s' cannot be supported", catalog, "count(*)");
-                        }
-                        if (functionCall.getArguments().size() == 1) {
-                            Expression expression = functionCall.getArguments().get(0);
-                            if (expression instanceof LongLiteral && ((LongLiteral) expression).getValue() == 1) {
-                                throw new SemanticException(SemanticErrorCode.NOT_SUPPORTED, singleColumn, "catalog %s select '%s' cannot be supported", catalog, "count(1)");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return isNeedPushDown;
     }
 }

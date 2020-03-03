@@ -15,7 +15,6 @@ package com.facebook.presto.plugin.druid;
 
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.ConnectionFactory;
-import org.apache.calcite.avatica.UnregisteredDriver;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

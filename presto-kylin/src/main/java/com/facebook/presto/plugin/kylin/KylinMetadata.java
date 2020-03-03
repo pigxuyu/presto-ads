@@ -35,6 +35,7 @@ public class KylinMetadata extends JdbcMetadata {
         this.jdbcClient = requireNonNull(jdbcClient, "client is null");
     }
 
+    @SuppressWarnings("Duplicates")
     @Override
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle table) {
         JdbcTableHandle handle = (JdbcTableHandle) table;

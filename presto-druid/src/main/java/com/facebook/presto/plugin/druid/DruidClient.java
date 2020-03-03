@@ -155,6 +155,8 @@ public class DruidClient extends BaseJdbcClient {
     @SuppressWarnings("Duplicates")
     @Override
     public List<JdbcColumnHandle> getColumns(ConnectorSession session, JdbcTableHandle tableHandle) {
+        JdbcTypeHandle countTypeHandle = new JdbcTypeHandle(-5, -1, -1);
+        Optional<ReadMapping> countColumnMapping = toPrestoType(session, countTypeHandle);
         try (Connection connection = connectionFactory.openConnection()) {
             try (ResultSet resultSet = connection.getMetaData().getColumns(tableHandle.getCatalogName(), tableHandle.getSchemaName(), tableHandle.getTableName(), null)) {
                 List<JdbcColumnHandle> columns = new ArrayList<>();
@@ -165,8 +167,6 @@ public class DruidClient extends BaseJdbcClient {
                         String columnName = resultSet.getString("COLUMN_NAME");
                         columns.add(new JdbcColumnHandle(connectorId, columnName, typeHandle, columnMapping.get().getType()));
 
-                        JdbcTypeHandle countTypeHandle = new JdbcTypeHandle(-5, -1, -1);
-                        Optional<ReadMapping> countColumnMapping = toPrestoType(session, countTypeHandle);
                         columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT + columnName, countTypeHandle, countColumnMapping.get().getType()));
                         columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT_DISTINCT + columnName, countTypeHandle, countColumnMapping.get().getType()));
                     }
@@ -174,6 +174,8 @@ public class DruidClient extends BaseJdbcClient {
                 if (columns.isEmpty()) {
                     throw new TableNotFoundException(tableHandle.getSchemaTableName());
                 }
+                columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT + OptimizeConstant.ALL, countTypeHandle, countColumnMapping.get().getType()));
+                columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT_DISTINCT + OptimizeConstant.ALL, countTypeHandle, countColumnMapping.get().getType()));
                 return ImmutableList.copyOf(columns);
             }
         } catch (SQLException e) {

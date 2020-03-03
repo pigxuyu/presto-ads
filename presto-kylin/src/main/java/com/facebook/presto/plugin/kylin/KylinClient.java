@@ -138,8 +138,11 @@ public class KylinClient extends BaseJdbcClient {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     @Override
     public List<JdbcColumnHandle> getColumns(ConnectorSession session, JdbcTableHandle tableHandle) {
+        JdbcTypeHandle countTypeHandle = new JdbcTypeHandle(-5, -1, -1);
+        Optional<ReadMapping> countColumnMapping = toPrestoType(session, countTypeHandle);
         try (Connection connection = connectionFactory.openConnection()) {
             String escape = connection.getMetaData().getSearchStringEscape();
             try (ResultSet resultSet = connection.getMetaData().getColumns(tableHandle.getCatalogName(), escapeNamePattern(tableHandle.getSchemaName(), escape), escapeNamePattern(tableHandle.getTableName(), escape), null)) {
@@ -155,8 +158,6 @@ public class KylinClient extends BaseJdbcClient {
                         String columnName = resultSet.getString("COLUMN_NAME");
                         columns.add(new JdbcColumnHandle(connectorId, columnName, typeHandle, columnMapping.get().getType()));
 
-                        JdbcTypeHandle countTypeHandle = new JdbcTypeHandle(-5, -1, -1);
-                        Optional<ReadMapping> countColumnMapping = toPrestoType(session, countTypeHandle);
                         columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT + columnName, countTypeHandle, countColumnMapping.get().getType()));
                         columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT_DISTINCT + columnName, countTypeHandle, countColumnMapping.get().getType()));
                     }
@@ -165,6 +166,8 @@ public class KylinClient extends BaseJdbcClient {
                     // In rare cases (e.g. PostgreSQL) a table might have no columns.
                     throw new TableNotFoundException(tableHandle.getSchemaTableName());
                 }
+                columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT + OptimizeConstant.ALL, countTypeHandle, countColumnMapping.get().getType()));
+                columns.add(new JdbcColumnHandle(connectorId, OptimizeConstant.COUNT_DISTINCT + OptimizeConstant.ALL, countTypeHandle, countColumnMapping.get().getType()));
                 return ImmutableList.copyOf(columns);
             }
         }

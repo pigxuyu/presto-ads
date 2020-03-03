@@ -18,6 +18,8 @@ package com.facebook.presto.optimize;
  */
 public class OptimizeConstant {
 
+    public static final String ALL = "$all";
+
     public static final String HIDDEN_COLUMN_PREFIX = "$_";
 
     public static final String HIDDEN_COLUMN_SUFFIX = "_$";

@@ -27,7 +27,11 @@ public class OptimizeUdfUtil {
     }
 
     public static String udfMapping(String column) {
-        if (column.contains(OptimizeConstant.COUNT)) {
+        if (column.equals(OptimizeConstant.COUNT + OptimizeConstant.ALL)) {
+            return "count(*)";
+        } else if (column.equals(OptimizeConstant.COUNT_DISTINCT + OptimizeConstant.ALL)) {
+            return "count(distinct 1)";
+        } else if (column.contains(OptimizeConstant.COUNT)) {
             return "count(" + column.replace(OptimizeConstant.COUNT, "") + ")";
         } else if (column.contains(OptimizeConstant.COUNT_DISTINCT)) {
             return "count(distinct " + column.replace(OptimizeConstant.COUNT_DISTINCT, "") + ")";

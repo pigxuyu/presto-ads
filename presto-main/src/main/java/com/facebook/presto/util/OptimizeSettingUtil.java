@@ -49,12 +49,9 @@ public class OptimizeSettingUtil {
         return catalog.toLowerCase(Locale.getDefault()).contains("kylin");
     }
 
-    public static boolean isCountUDF(FunctionCall functionCall) {
-        return "count".equalsIgnoreCase(functionCall.getName().toString());
-    }
-
     public static boolean isDruidPushDownDateUDF(FunctionCall functionCall) {
         String functionCallName = functionCall.getName().toString();
+        if (functionCall.getArguments().isEmpty()) return false;
         Expression firstArgument = functionCall.getArguments().get(0);
         boolean matchFunctionName = "time_format".equalsIgnoreCase(functionCallName) || "format_datetime".equalsIgnoreCase(functionCallName);
         boolean matchArgument = (firstArgument instanceof Identifier && ((Identifier) firstArgument).getValue().equalsIgnoreCase("__time")) || (firstArgument instanceof DereferenceExpression && ((DereferenceExpression) firstArgument).getField().getValue().equalsIgnoreCase("__time"));
@@ -63,6 +60,7 @@ public class OptimizeSettingUtil {
 
     public static boolean isNeedOptimizeAggUDF(FunctionCall functionCall) {
         String functionCallName = functionCall.getName().toString();
+        if (functionCall.getArguments().isEmpty()) return false;
         Expression firstArgument = functionCall.getArguments().get(0);
         boolean matchFunctionName = optimizePushDownUdfMap.containsKey(functionCallName.toLowerCase(Locale.getDefault()));
         boolean matchArgument = firstArgument instanceof Identifier || firstArgument instanceof DereferenceExpression;
@@ -71,9 +69,8 @@ public class OptimizeSettingUtil {
 
     public static boolean isNeedOptimizeCountUDF(FunctionCall functionCall) {
         String functionCallName = functionCall.getName().toString();
-        Expression firstArgument = functionCall.getArguments().get(0);
         boolean matchFunctionName = "count".equalsIgnoreCase(functionCallName.toLowerCase(Locale.getDefault()));
-        boolean matchArgument = firstArgument instanceof Identifier || firstArgument instanceof DereferenceExpression;
+        boolean matchArgument = functionCall.getArguments().isEmpty() || functionCall.getArguments().size() == 1;
         return matchFunctionName && matchArgument;
     }
 
