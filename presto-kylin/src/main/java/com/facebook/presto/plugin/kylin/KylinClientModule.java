@@ -27,6 +27,7 @@ public class KylinClientModule extends AbstractConfigurationAwareModule {
     protected void setup(Binder binder) {
         binder.bind(JdbcClient.class).to(KylinClient.class).in(Scopes.SINGLETON);
         binder.bind(KylinMetadataFactory.class).in(Scopes.SINGLETON);
+        binder.bind(KylinRecordSetProvider.class).in(Scopes.SINGLETON);
         binder.bind(KylinConnector.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
         configBinder(binder).bindConfig(KylinConfig.class);

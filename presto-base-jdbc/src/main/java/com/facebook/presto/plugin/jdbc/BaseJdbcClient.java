@@ -269,14 +269,6 @@ public class BaseJdbcClient
     }
 
     @Override
-    public PreparedStatement buildSql(Connection connection, JdbcSplit split, List<JdbcColumnHandle> columnHandles, String queryId)
-            throws SQLException
-    {
-        // most drivers do not need this
-        throw new RuntimeException("buildSql with queryId not supported");
-    }
-
-    @Override
     public JdbcOutputTableHandle beginCreateTable(ConnectorTableMetadata tableMetadata)
     {
         return beginWriteTable(tableMetadata);

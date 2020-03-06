@@ -204,7 +204,6 @@ public class DruidClient extends BaseJdbcClient {
         }
     }
 
-    @Override
     public PreparedStatement buildSql(Connection connection, JdbcSplit split, List<JdbcColumnHandle> columnHandles, String queryId) throws SQLException {
         return new DruidQueryBuilder(identifierQuote).buildSql(
                 this,

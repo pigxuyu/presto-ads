@@ -176,7 +176,6 @@ public class KylinClient extends BaseJdbcClient {
         }
     }
 
-    @Override
     public PreparedStatement buildSql(Connection connection, JdbcSplit split, List<JdbcColumnHandle> columnHandles, String queryId) throws SQLException {
         return new KylinQueryBuilder(identifierQuote).buildSql(
                 this,

@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.plugin.jdbc;
+package com.facebook.presto.plugin.druid;
 
+import com.facebook.presto.plugin.jdbc.*;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
@@ -21,11 +22,7 @@ import com.google.common.base.VerifyException;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.List;
 
 import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
@@ -34,10 +31,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
-public class JdbcRecordCursor
-        implements RecordCursor
-{
-    private static final Logger log = Logger.get(JdbcRecordCursor.class);
+public class DruidRecordCursor implements RecordCursor {
+
+    private static final Logger log = Logger.get(DruidRecordCursor.class);
 
     private final JdbcColumnHandle[] columnHandles;
     private final BooleanReadFunction[] booleanReadFunctions;
@@ -51,8 +47,8 @@ public class JdbcRecordCursor
     private final ResultSet resultSet;
     private boolean closed;
 
-    public JdbcRecordCursor(JdbcClient jdbcClient, ConnectorSession session, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
-    {
+    public DruidRecordCursor(JdbcClient jdbcClient, ConnectorSession session, JdbcSplit split, List<JdbcColumnHandle> columnHandles) {
+
         this.jdbcClient = requireNonNull(jdbcClient, "jdbcClient is null");
 
         this.columnHandles = columnHandles.toArray(new JdbcColumnHandle[0]);
@@ -87,7 +83,7 @@ public class JdbcRecordCursor
 
         try {
             connection = jdbcClient.getConnection(split);
-            statement = jdbcClient.buildSql(connection, split, columnHandles);
+            statement = ((DruidClient) jdbcClient).buildSql(connection, split, columnHandles, session.getQueryId());
             log.debug("Executing: %s", statement.toString());
             resultSet = statement.executeQuery();
         }
@@ -97,26 +93,22 @@ public class JdbcRecordCursor
     }
 
     @Override
-    public long getReadTimeNanos()
-    {
+    public long getReadTimeNanos() {
         return 0;
     }
 
     @Override
-    public long getCompletedBytes()
-    {
+    public long getCompletedBytes() {
         return 0;
     }
 
     @Override
-    public Type getType(int field)
-    {
+    public Type getType(int field) {
         return columnHandles[field].getColumnType();
     }
 
     @Override
-    public boolean advanceNextPosition()
-    {
+    public boolean advanceNextPosition() {
         if (closed) {
             return false;
         }
@@ -130,8 +122,7 @@ public class JdbcRecordCursor
     }
 
     @Override
-    public boolean getBoolean(int field)
-    {
+    public boolean getBoolean(int field) {
         checkState(!closed, "cursor is closed");
         try {
             return booleanReadFunctions[field].readBoolean(resultSet, field + 1);
@@ -142,8 +133,7 @@ public class JdbcRecordCursor
     }
 
     @Override
-    public long getLong(int field)
-    {
+    public long getLong(int field) {
         checkState(!closed, "cursor is closed");
         try {
             return longReadFunctions[field].readLong(resultSet, field + 1);
@@ -154,8 +144,7 @@ public class JdbcRecordCursor
     }
 
     @Override
-    public double getDouble(int field)
-    {
+    public double getDouble(int field) {
         checkState(!closed, "cursor is closed");
         try {
             return doubleReadFunctions[field].readDouble(resultSet, field + 1);
@@ -166,8 +155,7 @@ public class JdbcRecordCursor
     }
 
     @Override
-    public Slice getSlice(int field)
-    {
+    public Slice getSlice(int field) {
         checkState(!closed, "cursor is closed");
         try {
             return sliceReadFunctions[field].readSlice(resultSet, field + 1);
@@ -178,14 +166,12 @@ public class JdbcRecordCursor
     }
 
     @Override
-    public Object getObject(int field)
-    {
+    public Object getObject(int field) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isNull(int field)
-    {
+    public boolean isNull(int field) {
         checkState(!closed, "cursor is closed");
         checkArgument(field < columnHandles.length, "Invalid field index");
 
@@ -204,8 +190,7 @@ public class JdbcRecordCursor
 
     @SuppressWarnings("UnusedDeclaration")
     @Override
-    public void close()
-    {
+    public void close() {
         if (closed) {
             return;
         }
@@ -213,8 +198,8 @@ public class JdbcRecordCursor
 
         // use try with resources to close everything properly
         try (Connection connection = this.connection;
-                Statement statement = this.statement;
-                ResultSet resultSet = this.resultSet) {
+             Statement statement = this.statement;
+             ResultSet resultSet = this.resultSet) {
             jdbcClient.abortReadConnection(connection);
         }
         catch (SQLException e) {
@@ -222,8 +207,7 @@ public class JdbcRecordCursor
         }
     }
 
-    private RuntimeException handleSqlException(Exception e)
-    {
+    private RuntimeException handleSqlException(Exception e) {
         try {
             close();
         }

@@ -15,7 +15,6 @@ package com.facebook.presto.plugin.kylin;
 
 import com.facebook.presto.plugin.jdbc.JdbcConnector;
 import com.facebook.presto.plugin.jdbc.JdbcPageSinkProvider;
-import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.plugin.jdbc.JdbcSplitManager;
 import com.facebook.presto.spi.connector.ConnectorAccessControl;
 import io.airlift.bootstrap.LifeCycleManager;
@@ -30,7 +29,7 @@ public class KylinConnector extends JdbcConnector {
             LifeCycleManager lifeCycleManager,
             KylinMetadataFactory jdbcMetadataFactory,
             JdbcSplitManager jdbcSplitManager,
-            JdbcRecordSetProvider jdbcRecordSetProvider,
+            KylinRecordSetProvider jdbcRecordSetProvider,
             JdbcPageSinkProvider jdbcPageSinkProvider,
             Optional<ConnectorAccessControl> accessControl) {
 
