@@ -124,7 +124,7 @@ public class OptimizePlanTreeUtil {
             sql.append("from").append(StringUtils.SPACE).append("{tableName}").append(StringUtils.SPACE);
             if (where.isPresent()) {
                 sql.append("where").append(StringUtils.SPACE).append(where.get().toString().replaceAll("\"", "")).append(StringUtils.SPACE);
-                planTree.setWhere(Optional.empty());
+                ObjectReflectSetUtil.setField(planTree, Optional.empty(), "where");
             }
             if (groupBy.isPresent()) {
                 List<String> groups = new ArrayList<>();
@@ -140,10 +140,10 @@ public class OptimizePlanTreeUtil {
                     }
                 }
                 sql.append("group by").append(StringUtils.SPACE).append(StringUtils.join(groups, ",")).append(StringUtils.SPACE);
-                planTree.setGroupBy(Optional.empty());
+                ObjectReflectSetUtil.setField(planTree, Optional.empty(), "groupBy");
                 if (having.isPresent()) {
                     sql.append("having").append(StringUtils.SPACE).append(having.get().toString().replaceAll("\"", "")).append(StringUtils.SPACE);
-                    planTree.setHaving(Optional.empty());
+                    ObjectReflectSetUtil.setField(planTree, Optional.empty(), "having");
                 }
             }
             if (orderBy.isPresent()) {
@@ -174,13 +174,13 @@ public class OptimizePlanTreeUtil {
                     }
                 }
                 if (sorts.size() > 0) sql.append("order by").append(StringUtils.SPACE).append(StringUtils.join(sorts, ",")).append(StringUtils.SPACE);
-                planTree.setOrderBy(Optional.empty());
+                ObjectReflectSetUtil.setField(planTree, Optional.empty(), "orderBy");
             }
             if (limit.isPresent()) {
                 sql.append("limit").append(StringUtils.SPACE).append(limit.get());
-                planTree.setLimit(Optional.empty());
+                ObjectReflectSetUtil.setField(planTree, Optional.empty(), "limit");
             }
-            planTree.setSelect(new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect));
+            ObjectReflectSetUtil.setField(planTree, new Select(select.getLocation().get(), select.isDistinct(), reConstructSelect), "select");
             allSourceSqls.put(fullTableName, new OptimizeTable(sql.toString(), tableAliasName, new ArrayList<>(fields)));
         }
     }
@@ -294,10 +294,7 @@ public class OptimizePlanTreeUtil {
                 String connector = th.getConnectorId().getCatalogName();
                 com.facebook.presto.spi.ConnectorTableHandle handle = th.getConnectorHandle();
                 if (OptimizeSettingUtil.isNeedOptimizeCatalog(connector)) {
-                    java.lang.reflect.Field tableAliasName = handle.getClass().getDeclaredField("tableAliasName");
-                    tableAliasName.setAccessible(true);
-                    tableAliasName.set(handle, node.getAlias().getValue());
-                    tableAliasName.setAccessible(false);
+                    ObjectReflectSetUtil.setField(handle, node.getAlias().getValue(), "tableAliasName");
                 }
             }
         } catch (Exception e) {

@@ -25,13 +25,13 @@ import static java.util.Objects.requireNonNull;
 public class QuerySpecification
         extends QueryBody
 {
-    private Select select;
-    private Optional<Relation> from;
-    private Optional<Expression> where;
-    private Optional<GroupBy> groupBy;
-    private Optional<Expression> having;
-    private Optional<OrderBy> orderBy;
-    private Optional<String> limit;
+    private final Select select;
+    private final Optional<Relation> from;
+    private final Optional<Expression> where;
+    private final Optional<GroupBy> groupBy;
+    private final Optional<Expression> having;
+    private final Optional<OrderBy> orderBy;
+    private final Optional<String> limit;
 
     public QuerySpecification(
             Select select,
@@ -119,36 +119,6 @@ public class QuerySpecification
     public Optional<String> getLimit()
     {
         return limit;
-    }
-
-    public void setSelect(Select select)
-    {
-        this.select = select;
-    }
-
-    public void setWhere(Optional<Expression> where)
-    {
-        this.where = where;
-    }
-
-    public void setHaving(Optional<Expression> having)
-    {
-        this.having = having;
-    }
-
-    public void setGroupBy(Optional<GroupBy> groupBy)
-    {
-        this.groupBy = groupBy;
-    }
-
-    public void setOrderBy(Optional<OrderBy> orderBy)
-    {
-        this.orderBy = orderBy;
-    }
-
-    public void setLimit(Optional<String> limit)
-    {
-        this.limit = limit;
     }
 
     @Override

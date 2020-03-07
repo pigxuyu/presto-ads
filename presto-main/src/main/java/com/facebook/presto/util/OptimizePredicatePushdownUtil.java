@@ -14,6 +14,7 @@
 package com.facebook.presto.util;
 
 import com.facebook.presto.optimize.ObjectMysqlUtil;
+import com.facebook.presto.optimize.ObjectReflectSetUtil;
 import com.facebook.presto.optimize.OptimizeObj;
 import com.facebook.presto.optimize.OptimizeServerConfigUtil;
 import com.facebook.presto.sql.analyzer.SemanticException;
@@ -49,8 +50,8 @@ public class OptimizePredicatePushdownUtil {
                             : ((rootRightExpression instanceof LongLiteral || childRightExpression instanceof LongLiteral)
                             ? new LongLiteral(String.valueOf(finalVaule.longValue()))
                             : new GenericLiteral(((GenericLiteral) rootRightExpression).getType(), String.valueOf(finalVaule.longValue())));
-                    rootExpression.left = rootLeftExpression;
-                    rootExpression.right = rootRightExpression;
+                    ObjectReflectSetUtil.setField(rootExpression, rootLeftExpression, "left");
+                    ObjectReflectSetUtil.setField(rootExpression, rootRightExpression, "right");
                 }
             } else if (rootOperator.equals(ComparisonExpression.Operator.EQUAL) && rootRightExpression instanceof ArithmeticBinaryExpression && isNumberLiteral(rootLeftExpression)) {
                 ArithmeticBinaryExpression childExpression = (ArithmeticBinaryExpression) rootRightExpression;
@@ -68,8 +69,8 @@ public class OptimizePredicatePushdownUtil {
                             ? new LongLiteral(String.valueOf(finalVaule.longValue()))
                             : new GenericLiteral(((GenericLiteral) rootLeftExpression).getType(), String.valueOf(finalVaule.longValue())));
                     rootLeftExpression = childLeftExpression;
-                    rootExpression.left = rootLeftExpression;
-                    rootExpression.right = rootRightExpression;
+                    ObjectReflectSetUtil.setField(rootExpression, rootLeftExpression, "left");
+                    ObjectReflectSetUtil.setField(rootExpression, rootRightExpression, "right");
                 }
             }
         } else if (predicate instanceof LogicalBinaryExpression) {
