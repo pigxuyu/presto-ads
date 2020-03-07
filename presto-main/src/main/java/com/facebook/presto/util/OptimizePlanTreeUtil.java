@@ -93,7 +93,7 @@ public class OptimizePlanTreeUtil {
     private static void optimizeTable(String sessionCatalog, String sessionSchema, Map<String, OptimizeTable> allSourceSqls, QuerySpecification planTree) {
         Select select = planTree.getSelect();
         if (planTree.getFrom().get() instanceof Table) {
-            ObjectReflectSetUtil.setField(planTree, Optional.of(new AliasedRelation(planTree.getFrom().get(), new Identifier(RandomStringUtils.randomAlphanumeric(10).toLowerCase()), null)), "from");
+            ObjectReflectSetUtil.setField(planTree, Optional.of(new AliasedRelation(planTree.getFrom().get(), new Identifier(RandomStringUtils.randomAlphanumeric(10).toLowerCase(Locale.ENGLISH)), null)), "from");
         }
         Table table = (Table) ((AliasedRelation) planTree.getFrom().get()).getRelation();
         String tableAliasName = ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue();
