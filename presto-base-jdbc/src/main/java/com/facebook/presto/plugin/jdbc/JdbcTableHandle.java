@@ -28,11 +28,11 @@ import static java.util.Objects.requireNonNull;
 public class JdbcTableHandle
         implements ConnectorTableHandle
 {
-    protected final String connectorId;
-    protected final SchemaTableName schemaTableName;
-    protected final String catalogName;
-    protected final String schemaName;
-    protected final String tableName;
+    private final String connectorId;
+    private final SchemaTableName schemaTableName;
+    private final String catalogName;
+    private final String schemaName;
+    private final String tableName;
 
     @JsonCreator
     public JdbcTableHandle(

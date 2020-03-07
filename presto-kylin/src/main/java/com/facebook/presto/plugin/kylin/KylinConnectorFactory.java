@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.plugin.kylin;
 
-import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
 import com.facebook.presto.plugin.jdbc.JdbcModule;
 import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
@@ -51,7 +50,7 @@ public class KylinConnectorFactory implements ConnectorFactory {
 
     @Override
     public ConnectorHandleResolver getHandleResolver() {
-        return new JdbcHandleResolver();
+        return new KylinJdbcHandleResolver();
     }
 
     @Override

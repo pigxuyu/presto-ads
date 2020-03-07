@@ -30,12 +30,11 @@ import static java.util.Objects.requireNonNull;
 public class JdbcSplit
         implements ConnectorSplit
 {
-    protected final String connectorId;
-    protected final String catalogName;
-    protected final String schemaName;
-    protected final String tableName;
-    protected final String tableAliasName;
-    protected final TupleDomain<ColumnHandle> tupleDomain;
+    private final String connectorId;
+    private final String catalogName;
+    private final String schemaName;
+    private final String tableName;
+    private final TupleDomain<ColumnHandle> tupleDomain;
 
     @JsonCreator
     public JdbcSplit(
@@ -43,20 +42,13 @@ public class JdbcSplit
             @JsonProperty("catalogName") @Nullable String catalogName,
             @JsonProperty("schemaName") @Nullable String schemaName,
             @JsonProperty("tableName") String tableName,
-            @JsonProperty("tableAliasName") @Nullable String tableAliasName,
             @JsonProperty("tupleDomain") TupleDomain<ColumnHandle> tupleDomain)
     {
         this.connectorId = requireNonNull(connectorId, "connector id is null");
         this.catalogName = catalogName;
         this.schemaName = schemaName;
         this.tableName = requireNonNull(tableName, "table name is null");
-        this.tableAliasName = tableAliasName;
         this.tupleDomain = requireNonNull(tupleDomain, "tupleDomain is null");
-    }
-
-    public JdbcSplit(String connectorId, String catalogName, String schemaName, String tableName, TupleDomain<ColumnHandle> tupleDomain)
-    {
-        this(connectorId, catalogName, schemaName, tableName, "", tupleDomain);
     }
 
     @JsonProperty
@@ -83,13 +75,6 @@ public class JdbcSplit
     public String getTableName()
     {
         return tableName;
-    }
-
-    @JsonProperty
-    @Nullable
-    public String getTableAliasName()
-    {
-        return tableAliasName;
     }
 
     @JsonProperty

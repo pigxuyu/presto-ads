@@ -212,7 +212,7 @@ public class DruidClient extends BaseJdbcClient {
                 split.getCatalogName(),
                 split.getSchemaName(),
                 split.getTableName(),
-                split.getTableAliasName(),
+                ((DruidJdbcSplit) split).getTableAliasName(),
                 columnHandles,
                 split.getTupleDomain(),
                 queryId);
@@ -221,7 +221,7 @@ public class DruidClient extends BaseJdbcClient {
     @Override
     public ConnectorSplitSource getSplits(JdbcTableLayoutHandle layoutHandle) {
         DruidJdbcTableHandle tableHandle = (DruidJdbcTableHandle) layoutHandle.getTable();
-        JdbcSplit jdbcSplit = new JdbcSplit(
+        JdbcSplit jdbcSplit = new DruidJdbcSplit(
                 connectorId,
                 tableHandle.getCatalogName(),
                 tableHandle.getSchemaName(),

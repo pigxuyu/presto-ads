@@ -184,7 +184,7 @@ public class KylinClient extends BaseJdbcClient {
                 split.getCatalogName(),
                 split.getSchemaName(),
                 split.getTableName(),
-                split.getTableAliasName(),
+                ((KylinJdbcSplit) split).getTableAliasName(),
                 columnHandles,
                 split.getTupleDomain(),
                 queryId);
@@ -193,7 +193,7 @@ public class KylinClient extends BaseJdbcClient {
     @Override
     public ConnectorSplitSource getSplits(JdbcTableLayoutHandle layoutHandle) {
         KylinJdbcTableHandle tableHandle = (KylinJdbcTableHandle) layoutHandle.getTable();
-        JdbcSplit jdbcSplit = new JdbcSplit(
+        JdbcSplit jdbcSplit = new KylinJdbcSplit(
                 connectorId,
                 tableHandle.getCatalogName(),
                 tableHandle.getSchemaName(),

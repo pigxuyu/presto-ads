@@ -53,18 +53,18 @@ public class KylinJdbcTableHandle extends JdbcTableHandle {
             return false;
         }
         KylinJdbcTableHandle o = (KylinJdbcTableHandle) obj;
-        return Objects.equals(this.connectorId, o.connectorId) &&
-                Objects.equals(this.schemaTableName, o.schemaTableName) &&
+        return Objects.equals(this.getConnectorId(), o.getConnectorId()) &&
+                Objects.equals(this.getSchemaTableName(), o.getSchemaTableName()) &&
                 Objects.equals(this.tableAliasName, o.tableAliasName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectorId, schemaTableName, tableAliasName);
+        return Objects.hash(getConnectorId(), getSchemaTableName(), tableAliasName);
     }
 
     @Override
     public String toString() {
-        return Joiner.on(":").useForNull("null").join(connectorId, schemaTableName, catalogName, schemaName, tableName, tableAliasName);
+        return Joiner.on(":").useForNull("null").join(getConnectorId(), getSchemaTableName(), getCatalogName(), getSchemaName(), getTableName(), tableAliasName);
     }
 }
