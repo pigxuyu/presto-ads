@@ -20,6 +20,7 @@ import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.*;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -91,8 +92,11 @@ public class OptimizePlanTreeUtil {
 
     private static void optimizeTable(String sessionCatalog, String sessionSchema, Map<String, OptimizeTable> allSourceSqls, QuerySpecification planTree) {
         Select select = planTree.getSelect();
-        Table table = planTree.getFrom().get() instanceof Table ? (Table) planTree.getFrom().get() : (Table) ((AliasedRelation) planTree.getFrom().get()).getRelation();
-        String tableAliasName = planTree.getFrom().get() instanceof AliasedRelation ? ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue() : "";
+        if (planTree.getFrom().get() instanceof Table) {
+            ObjectReflectSetUtil.setField(planTree, Optional.of(new AliasedRelation(planTree.getFrom().get(), new Identifier(RandomStringUtils.randomAlphanumeric(10).toLowerCase()), null)), "from");
+        }
+        Table table = (Table) ((AliasedRelation) planTree.getFrom().get()).getRelation();
+        String tableAliasName = ((AliasedRelation) planTree.getFrom().get()).getAlias().getValue();
         String fullTableName = (table.getName().getParts().size() == 1 ? sessionCatalog + "." + sessionSchema + "." : "") + table.getName().toString() + (StringUtils.isNotEmpty(tableAliasName) ? "." + tableAliasName : "");
         String catalog = table.getName().getParts().size() == 1 ? sessionCatalog : table.getName().getParts().get(0);
         if (StringUtils.isNotEmpty(catalog) && select != null && OptimizeSettingUtil.isNeedOptimizeCatalog(catalog)) {
